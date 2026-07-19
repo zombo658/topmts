@@ -191,7 +191,7 @@ function buildMessage(template, fields, settings) {
       : resolveField(name, fields);
     if (value === null) {
       unmatched.push(name);
-      return whole; // оставляем {метку} как есть — видно, что не нашлось
+      return '0'; // пусто на портале — в отчёте ставим 0
     }
     return value;
   });
@@ -310,7 +310,7 @@ async function sendReport() {
   const { text: message, unmatched } = buildMessage(s.template, fields, s);
   if (unmatched.length) {
     notify('VK Авто-отчёт — внимание',
-      'Не нашлись на портале: ' + unmatched.join(', ') + '. Отправляю как есть.');
+      'Пусто на портале, подставлен 0: ' + unmatched.join(', '));
   }
   const sel = normalizePeer(s.peerId);
   const url = `https://vk.com/im?sel=${encodeURIComponent(sel)}`;

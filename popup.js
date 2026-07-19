@@ -121,7 +121,7 @@ async function onPreview() {
     if (resp && resp.ok) {
       let html = '— Так будет выглядеть отчёт —\n\n' + escapeHtml(resp.text);
       if (resp.unmatched && resp.unmatched.length) {
-        html += '\n\n<span class="warn">⚠ Не нашлись на портале: ' +
+        html += '\n\n<span class="warn">⚠ Пусто на портале, подставлен 0: ' +
           escapeHtml(resp.unmatched.join(', ')) + '</span>';
       }
       html += '\n\n— Все данные, найденные на странице —\n' +
@@ -129,9 +129,7 @@ async function onPreview() {
           .map(([k, v]) => escapeHtml(k + ': ' + v))
           .join('\n');
       box.innerHTML = html;
-      setStatus(resp.unmatched && resp.unmatched.length
-        ? 'Данные получены, но не все метки нашлись' : 'Данные получены ✓',
-        resp.unmatched && resp.unmatched.length > 0);
+      setStatus('Данные получены ✓');
     } else {
       box.hidden = true;
       setStatus('Ошибка: ' + (resp && resp.error ? resp.error : 'неизвестная'), true);
