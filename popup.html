@@ -6,49 +6,63 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <h1>VK Авто-отчёт</h1>
+  <div class="app">
+    <header class="row-anim" style="--i:0">
+      <div class="logo">✓</div>
+      <div>
+        <h1>VK Авто-отчёт</h1>
+        <p class="subtitle">отчёт в чат — сам, вовремя</p>
+      </div>
+      <label class="switch" title="Автоотправка">
+        <input type="checkbox" id="enabled">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </header>
 
-  <label class="toggle">
-    <input type="checkbox" id="enabled">
-    <span>Автоотправка включена</span>
-  </label>
+    <section class="card row-anim" style="--i:1">
+      <label class="field">
+        <span class="field-name">Чат</span>
+        <input type="text" id="peerId" placeholder="2000000066, c15 или durov">
+        <small>значение <code>sel=…</code> из адреса vk.ru/im</small>
+      </label>
+    </section>
 
-  <label>
-    Чат (id или короткое имя)
-    <input type="text" id="peerId" placeholder="напр. 12345678, c15 или durov">
-    <small>c15 — беседа №15; число — id пользователя. Видно в адресе vk.com/im?sel=…</small>
-  </label>
+    <section class="card row-anim" style="--i:2">
+      <div class="field">
+        <span class="field-name">Расписание</span>
+        <div class="schedule">
+          <input type="time" id="time" value="18:00">
+          <div class="days" id="days">
+            <label class="chip"><input type="checkbox" value="1" checked><span>Пн</span></label>
+            <label class="chip"><input type="checkbox" value="2" checked><span>Вт</span></label>
+            <label class="chip"><input type="checkbox" value="3" checked><span>Ср</span></label>
+            <label class="chip"><input type="checkbox" value="4" checked><span>Чт</span></label>
+            <label class="chip"><input type="checkbox" value="5" checked><span>Пт</span></label>
+            <label class="chip"><input type="checkbox" value="6"><span>Сб</span></label>
+            <label class="chip"><input type="checkbox" value="0"><span>Вс</span></label>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <label>
-    Время отправки
-    <input type="time" id="time" value="18:00">
-  </label>
+    <section class="card row-anim" style="--i:3">
+      <label class="field">
+        <span class="field-name">Шаблон отчёта</span>
+        <textarea id="template" rows="4" placeholder="Отчёт за {date}:&#10;- сделал то-то"></textarea>
+        <small><code>{date}</code> — дата, <code>{time}</code> — время</small>
+      </label>
+    </section>
 
-  <fieldset>
-    <legend>Дни недели</legend>
-    <div class="days" id="days">
-      <label><input type="checkbox" value="1" checked>Пн</label>
-      <label><input type="checkbox" value="2" checked>Вт</label>
-      <label><input type="checkbox" value="3" checked>Ср</label>
-      <label><input type="checkbox" value="4" checked>Чт</label>
-      <label><input type="checkbox" value="5" checked>Пт</label>
-      <label><input type="checkbox" value="6">Сб</label>
-      <label><input type="checkbox" value="0">Вс</label>
+    <div class="buttons row-anim" style="--i:4">
+      <button id="save" class="btn primary"><span class="btn-label">Сохранить</span></button>
+      <button id="sendNow" class="btn ghost">
+        <span class="spinner"></span>
+        <span class="btn-label">Отправить сейчас</span>
+      </button>
     </div>
-  </fieldset>
 
-  <label>
-    Шаблон отчёта
-    <textarea id="template" rows="5" placeholder="Отчёт за {date}:&#10;- сделал то-то"></textarea>
-    <small>Подстановки: {date} — дата, {time} — время</small>
-  </label>
-
-  <div class="buttons">
-    <button id="save">Сохранить</button>
-    <button id="sendNow" class="secondary">Отправить сейчас</button>
+    <p id="status" class="row-anim" style="--i:5"></p>
   </div>
-
-  <p id="status"></p>
 
   <script src="popup.js"></script>
 </body>

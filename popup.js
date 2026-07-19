@@ -12,8 +12,18 @@ const $ = id => document.getElementById(id);
 
 function setStatus(text, isError) {
   const el = $('status');
+  el.classList.remove('show', 'ok', 'err');
+  // перезапуск анимации появления
+  void el.offsetWidth;
   el.textContent = text;
-  el.className = isError ? 'err' : 'ok';
+  el.classList.add('show', isError ? 'err' : 'ok');
+}
+
+// анимация «нажатия клавиши» на кнопке
+function pressAnim(btn) {
+  btn.classList.remove('pressed');
+  void btn.offsetWidth;
+  btn.classList.add('pressed');
 }
 
 async function load() {
@@ -39,34 +49,48 @@ async function save() {
 
   if (s.enabled && !s.peerId) {
     setStatus('Укажите чат, чтобы включить автоотправку', true);
-    return;
+    return false;
   }
   if (s.enabled && days.length === 0) {
     setStatus('Выберите хотя бы один день недели', true);
-    return;
+    return false;
   }
 
   await chrome.storage.sync.set(s);
   await chrome.runtime.sendMessage({ type: 'RESCHEDULE' });
-  setStatus('Сохранено');
+  return true;
 }
 
-async function sendNow() {
+async function onSave() {
+  pressAnim($('save'));
+  if (await save()) setStatus('Сохранено ✓');
+}
+
+async function onSendNow() {
+  const btn = $('sendNow');
+  pressAnim(btn);
+
   const peerId = $('peerId').value.trim();
   if (!peerId) {
     setStatus('Укажите чат', true);
     return;
   }
-  await save();
+  if (!(await save())) return;
+
+  btn.classList.add('loading');
   setStatus('Отправляю…');
-  const resp = await chrome.runtime.sendMessage({ type: 'SEND_NOW' });
-  if (resp && resp.ok) {
-    setStatus('Отчёт отправлен');
-  } else {
-    setStatus('Ошибка: ' + (resp && resp.error ? resp.error : 'неизвестная'), true);
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'SEND_NOW' });
+    if (resp && resp.ok) {
+      setStatus('Отчёт отправлен ✓');
+    } else {
+      setStatus('Ошибка: ' + (resp && resp.error ? resp.error : 'неизвестная'), true);
+    }
+  } finally {
+    btn.classList.remove('loading');
   }
 }
 
-$('save').addEventListener('click', save);
-$('sendNow').addEventListener('click', sendNow);
+$('save').addEventListener('click', onSave);
+$('sendNow').addEventListener('click', onSendNow);
 load();

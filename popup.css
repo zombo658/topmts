@@ -1,29 +1,146 @@
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --card-hover: #1b222c;
+  --border: #2a313c;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #2787f5;
+  --accent-glow: rgba(39, 135, 245, 0.35);
+  --ok: #3ddc84;
+  --err: #ff6b6b;
+}
+
+* { box-sizing: border-box; }
+
 body {
   font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 13px;
-  width: 320px;
+  width: 340px;
   margin: 0;
-  padding: 14px;
-  color: #222;
-  background: #fff;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.app {
+  padding: 16px;
+  animation: pop-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transform-origin: top right;
+}
+
+/* появление попапа */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* поочерёдное появление блоков */
+.row-anim {
+  animation: rise 0.4s both cubic-bezier(0.2, 0.9, 0.3, 1);
+  animation-delay: calc(var(--i) * 55ms);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- шапка ---------- */
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #2787f5, #0b5bd3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 h1 {
-  font-size: 16px;
-  margin: 0 0 12px;
-  color: #0077ff;
+  font-size: 15px;
+  margin: 0;
+  letter-spacing: 0.2px;
 }
 
-label {
+.subtitle {
+  margin: 1px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- тумблер ---------- */
+
+.switch { margin-left: auto; cursor: pointer; }
+.switch input { display: none; }
+
+.track {
   display: block;
-  margin-bottom: 10px;
-  font-weight: 600;
+  width: 44px;
+  height: 25px;
+  border-radius: 13px;
+  background: #30363d;
+  position: relative;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
 }
 
-label.toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #c9d1d9;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s;
+}
+
+.switch input:checked + .track {
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.switch input:checked + .track .thumb {
+  transform: translateX(19px);
+  background: #fff;
+}
+
+.switch:active .thumb { transform: scale(0.85); }
+.switch input:checked + .track:active .thumb { transform: translateX(19px) scale(0.85); }
+
+/* ---------- карточки и поля ---------- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.card:hover { background: var(--card-hover); }
+.card:focus-within { border-color: var(--accent); }
+
+.field-name {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  margin-bottom: 7px;
 }
 
 input[type="text"],
@@ -31,80 +148,164 @@ input[type="time"],
 textarea {
   display: block;
   width: 100%;
-  box-sizing: border-box;
-  margin-top: 4px;
-  padding: 6px 8px;
-  border: 1px solid #d3d9de;
-  border-radius: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
   font: inherit;
-  font-weight: normal;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-textarea { resize: vertical; }
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(39, 135, 245, 0.18);
+}
+
+textarea { resize: vertical; min-height: 64px; }
+
+input[type="time"] {
+  width: auto;
+  color-scheme: dark;
+}
 
 small {
   display: block;
-  font-weight: normal;
-  color: #818c99;
-  margin-top: 3px;
+  color: var(--muted);
+  margin-top: 5px;
+  font-size: 11px;
 }
 
-fieldset {
-  border: 1px solid #d3d9de;
-  border-radius: 6px;
-  margin: 0 0 10px;
-  padding: 6px 8px;
+code {
+  background: rgba(39, 135, 245, 0.12);
+  color: #6ab0ff;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 10.5px;
 }
 
-legend {
-  font-weight: 600;
-  padding: 0 4px;
-}
+/* ---------- дни недели ---------- */
 
-.days {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.schedule { display: flex; flex-direction: column; gap: 9px; }
 
-.days label {
+.days { display: flex; gap: 5px; }
+
+.chip { cursor: pointer; }
+.chip input { display: none; }
+
+.chip span {
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin: 0;
-  font-weight: normal;
+  justify-content: center;
+  width: 36px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+  user-select: none;
 }
+
+.chip:hover span { border-color: var(--accent); color: var(--text); }
+.chip:active span { transform: scale(0.88); }
+
+.chip input:checked + span {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 10px var(--accent-glow);
+}
+
+/* ---------- кнопки ---------- */
 
 .buttons {
   display: flex;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 2px;
 }
 
-button {
+.btn {
+  position: relative;
   flex: 1;
-  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 0;
   border: none;
-  border-radius: 6px;
-  background: #0077ff;
-  color: #fff;
+  border-radius: 10px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s;
 }
 
-button.secondary {
-  background: #e5ebf1;
-  color: #222;
+/* анимация «нажатия клавиши» */
+.btn:active { transform: translateY(2px) scale(0.97); }
+
+.btn.pressed { animation: key-press 0.25s ease; }
+
+@keyframes key-press {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(2px) scale(0.96); }
+  100% { transform: translateY(0) scale(1); }
 }
 
-button:hover { opacity: 0.9; }
+.btn.primary {
+  background: linear-gradient(135deg, #2787f5, #0b5bd3);
+  color: #fff;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+
+.btn.primary:hover { filter: brightness(1.12); }
+
+.btn.ghost {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn.ghost:hover { border-color: var(--accent); color: #6ab0ff; }
+
+/* спиннер при отправке */
+.spinner {
+  display: none;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.btn.loading .spinner { display: inline-block; }
+.btn.loading { pointer-events: none; opacity: 0.8; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- статус ---------- */
 
 #status {
-  min-height: 16px;
-  margin: 10px 0 0;
+  min-height: 17px;
+  margin: 12px 0 0;
   font-size: 12px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.25s, transform 0.25s;
 }
 
-#status.ok { color: #4bb34b; }
-#status.err { color: #e64646; }
+#status.show { opacity: 1; transform: translateY(0); }
+#status.ok { color: var(--ok); }
+#status.err { color: var(--err); }
+
+#status.ok.show { animation: status-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+@keyframes status-pop {
+  0% { transform: scale(0.8); }
+  100% { transform: scale(1); }
+}
