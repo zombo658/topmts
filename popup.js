@@ -17,7 +17,8 @@ const DEFAULTS = {
   peerId: '',
   time: '18:00',
   days: [1, 2, 3, 4, 5],
-  template: DEFAULT_TEMPLATE
+  template: DEFAULT_TEMPLATE,
+  calls: '0'
 };
 
 const $ = id => document.getElementById(id);
@@ -43,6 +44,7 @@ async function load() {
   $('enabled').checked = s.enabled;
   $('peerId').value = s.peerId;
   $('time').value = s.time;
+  $('calls').value = s.calls;
   $('template').value = s.template;
   document.querySelectorAll('#days input').forEach(cb => {
     cb.checked = s.days.includes(Number(cb.value));
@@ -56,7 +58,8 @@ async function save() {
     peerId: $('peerId').value.trim(),
     time: $('time').value || '18:00',
     days,
-    template: $('template').value || DEFAULT_TEMPLATE
+    template: $('template').value || DEFAULT_TEMPLATE,
+    calls: $('calls').value.trim() || '0'
   };
 
   if (s.enabled && !s.peerId) {

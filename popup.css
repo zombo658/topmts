@@ -145,6 +145,7 @@ h1 {
 
 input[type="text"],
 input[type="time"],
+input[type="number"],
 textarea {
   display: block;
   width: 100%;

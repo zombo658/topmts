@@ -24,8 +24,18 @@ const DEFAULTS = {
   time: '18:00',         // время отправки ЧЧ:ММ
   days: [1, 2, 3, 4, 5], // дни недели (0 = воскресенье)
   template: DEFAULT_TEMPLATE,
+  calls: '0',            // количество звонков — вводится вручную в попапе
   lastSentDate: ''       // защита от повторной отправки в тот же день
 };
+
+// Соответствие строк отчёта полям на портале МТС
+const FIELD_ALIASES = [
+  ['поквартирный обход дмх', 'Подомовой обход'],
+  ['визуализация дмх', 'Раздача рекламных материалов'],
+  ['общее время поквартирного обхода', 'Время подомового обхода'],
+  ['общее время визуализации', 'Время раздачи рекламных материалов'],
+  ['общее время', 'Время на территории']
+];
 
 function getSettings() {
   return chrome.storage.sync.get(DEFAULTS);
@@ -120,9 +130,37 @@ async function fetchReportData() {
   return fields;
 }
 
+// Применяет расшифровку: переименовывает поля портала в метки отчёта,
+// считает сумму для «Общее количество ДМХ», подставляет текущую дату
+// и введённое вручную количество звонков
+function applyAliases(fields, settings) {
+  for (const [alias, source] of FIELD_ALIASES) {
+    const v = resolveField(source, fields);
+    if (v !== null) fields[alias] = v;
+  }
+
+  // Общее количество ДМХ = Подомовой обход + Раздача рекламных материалов
+  const walk = parseInt(resolveField('Подомовой обход', fields), 10);
+  const promo = parseInt(resolveField('Раздача рекламных материалов', fields), 10);
+  if (!Number.isNaN(walk) && !Number.isNaN(promo)) {
+    fields['общее количество дмх'] = String(walk + promo);
+  }
+
+  // дата — всегда день отправки сообщения, не дата с портала
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  fields['дата'] = dd + '.' + mm;
+  fields['дата полная'] = dd + '.' + mm + '.' + now.getFullYear();
+
+  // количество звонков — из настроек (вводится вручную)
+  fields['количество звонков'] = String(settings.calls || '0').trim() || '0';
+}
+
 // Заполняет шаблон: {date}/{time} — текущие дата и время,
 // остальные {метки} берутся из данных портала
-function buildMessage(template, fields) {
+function buildMessage(template, fields, settings) {
+  applyAliases(fields, settings);
   const now = new Date();
   const date = now.toLocaleDateString('ru-RU');
   const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
@@ -249,7 +287,7 @@ async function sendReport() {
 
   // собираем данные с портала МТС и заполняем шаблон
   const fields = await fetchReportData();
-  const { text: message, unmatched } = buildMessage(s.template, fields);
+  const { text: message, unmatched } = buildMessage(s.template, fields, s);
   if (unmatched.length) {
     notify('VK Авто-отчёт — внимание',
       'Не нашлись на портале: ' + unmatched.join(', ') + '. Отправляю как есть.');
@@ -348,7 +386,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       const s = await getSettings();
       const fields = await fetchReportData();
-      const { text, unmatched } = buildMessage(s.template, fields);
+      const { text, unmatched } = buildMessage(s.template, fields, s);
       return { ok: true, text, unmatched, fields };
     })()
       .then(sendResponse)
