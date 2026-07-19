@@ -1,0 +1,110 @@
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 13px;
+  width: 320px;
+  margin: 0;
+  padding: 14px;
+  color: #222;
+  background: #fff;
+}
+
+h1 {
+  font-size: 16px;
+  margin: 0 0 12px;
+  color: #0077ff;
+}
+
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+label.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+input[type="text"],
+input[type="time"],
+textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border: 1px solid #d3d9de;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: normal;
+}
+
+textarea { resize: vertical; }
+
+small {
+  display: block;
+  font-weight: normal;
+  color: #818c99;
+  margin-top: 3px;
+}
+
+fieldset {
+  border: 1px solid #d3d9de;
+  border-radius: 6px;
+  margin: 0 0 10px;
+  padding: 6px 8px;
+}
+
+legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.days label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+  font-weight: normal;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 6px;
+  background: #0077ff;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e5ebf1;
+  color: #222;
+}
+
+button:hover { opacity: 0.9; }
+
+#status {
+  min-height: 16px;
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+#status.ok { color: #4bb34b; }
+#status.err { color: #e64646; }

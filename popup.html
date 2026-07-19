@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>VK Авто-отчёт</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>VK Авто-отчёт</h1>
+
+  <label class="toggle">
+    <input type="checkbox" id="enabled">
+    <span>Автоотправка включена</span>
+  </label>
+
+  <label>
+    Чат (id или короткое имя)
+    <input type="text" id="peerId" placeholder="напр. 12345678, c15 или durov">
+    <small>c15 — беседа №15; число — id пользователя. Видно в адресе vk.com/im?sel=…</small>
+  </label>
+
+  <label>
+    Время отправки
+    <input type="time" id="time" value="18:00">
+  </label>
+
+  <fieldset>
+    <legend>Дни недели</legend>
+    <div class="days" id="days">
+      <label><input type="checkbox" value="1" checked>Пн</label>
+      <label><input type="checkbox" value="2" checked>Вт</label>
+      <label><input type="checkbox" value="3" checked>Ср</label>
+      <label><input type="checkbox" value="4" checked>Чт</label>
+      <label><input type="checkbox" value="5" checked>Пт</label>
+      <label><input type="checkbox" value="6">Сб</label>
+      <label><input type="checkbox" value="0">Вс</label>
+    </div>
+  </fieldset>
+
+  <label>
+    Шаблон отчёта
+    <textarea id="template" rows="5" placeholder="Отчёт за {date}:&#10;- сделал то-то"></textarea>
+    <small>Подстановки: {date} — дата, {time} — время</small>
+  </label>
+
+  <div class="buttons">
+    <button id="save">Сохранить</button>
+    <button id="sendNow" class="secondary">Отправить сейчас</button>
+  </div>
+
+  <p id="status"></p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
