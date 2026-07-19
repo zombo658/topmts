@@ -64,17 +64,48 @@ function notify(title, message) {
   });
 }
 
-// Запрос контент-скрипту; при отсутствии скрипта на странице — внедряем его
-async function askTab(tabId, msg, { inject = true } = {}) {
+// Запрос контент-скрипту в конкретном фрейме
+function askFrame(tabId, frameId, msg) {
+  return chrome.tabs.sendMessage(tabId, msg, { frameId });
+}
+
+// Внедряет content.js во все фреймы вкладки (в самом скрипте стоит
+// защита от повторного внедрения) и возвращает список frameId
+async function ensureInjected(tabId) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    files: ['content.js']
+  });
+  return results.map(r => r.frameId);
+}
+
+// Ищет фрейм, в котором есть поле ввода чата (мессенджер ВК может
+// находиться в iframe web.vk.me внутри vk.com)
+async function findComposerFrame(tabId) {
+  const frameIds = await ensureInjected(tabId);
+  for (const frameId of frameIds) {
+    try {
+      const resp = await askFrame(tabId, frameId, { type: 'PREPARE_COMPOSER' });
+      if (resp && resp.ok) return { frameId, prep: resp };
+    } catch (e) { /* фрейм недоступен — пропускаем */ }
+  }
+  return null;
+}
+
+// Диагностика по всем фреймам — попадает в текст ошибки
+async function collectDiag(tabId) {
   try {
-    return await chrome.tabs.sendMessage(tabId, msg);
-  } catch (e) {
-    if (inject && /Receiving end|Could not establish/i.test(e.message)) {
-      await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-      await sleep(300);
-      return chrome.tabs.sendMessage(tabId, msg);
+    const frameIds = await ensureInjected(tabId);
+    const parts = [];
+    for (const frameId of frameIds) {
+      try {
+        const d = await askFrame(tabId, frameId, { type: 'DIAG' });
+        if (d) parts.push(`${d.url} (полей: ${d.editables})`);
+      } catch (e) { /* пропускаем */ }
     }
-    throw e;
+    return parts.join('; ') || 'фреймы не ответили';
+  } catch (e) {
+    return 'диагностика не удалась: ' + e.message;
   }
 }
 
@@ -133,29 +164,32 @@ async function sendReport() {
   // Фокус на окно — нужен, чтобы ввод с клавиатуры попадал в поле чата
   await chrome.windows.update(tab.windowId, { focused: true });
 
-  // Ждём, пока чат загрузится и контент-скрипт найдёт и сфокусирует поле ввода
+  // Ждём, пока чат загрузится, и ищем фрейм с полем ввода
+  // (мессенджер может быть как в основной странице, так и в iframe)
   const deadline = Date.now() + 45000;
-  let prep = null;
+  let found = null;
   while (Date.now() < deadline) {
     try {
-      prep = await askTab(tab.id, { type: 'PREPARE_COMPOSER' });
-      if (prep && prep.ok) break;
+      found = await findComposerFrame(tab.id);
+      if (found) break;
     } catch (e) { /* страница ещё грузится */ }
     await sleep(1500);
   }
-  if (!prep || !prep.ok) {
-    throw new Error('Поле ввода чата не появилось за 45 сек' +
-      (prep && prep.error ? ': ' + prep.error : ''));
+  if (!found) {
+    const diag = await collectDiag(tab.id);
+    throw new Error('Поле ввода чата не появилось за 45 сек. ' +
+      'Проверьте, что выполнен вход в ВК и чат указан верно. Фреймы: ' + diag);
   }
+  const { frameId, prep } = found;
 
   // Печатаем через DevTools-протокол — «настоящий» ввод
   await cdpAttach(tab.id);
   try {
-    await askTab(tab.id, { type: 'PREPARE_COMPOSER' }); // повторный фокус
+    await askFrame(tab.id, frameId, { type: 'PREPARE_COMPOSER' }); // повторный фокус
     await cdp(tab.id, 'Input.insertText', { text: message });
     await sleep(600);
 
-    let state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+    let state = await askFrame(tab.id, frameId, { type: 'COMPOSER_STATE' });
     if (!state.text || !state.text.trim()) {
       throw new Error('Текст не появился в поле ввода (найдено: ' + prep.desc + ')');
     }
@@ -163,12 +197,12 @@ async function sendReport() {
     await cdpPressEnter(tab.id);
     await sleep(1200);
 
-    state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+    state = await askFrame(tab.id, frameId, { type: 'COMPOSER_STATE' });
     if (state.text && state.text.trim()) {
       // Enter не сработал — пробуем кнопку «Отправить»
-      const click = await askTab(tab.id, { type: 'CLICK_SEND' });
+      const click = await askFrame(tab.id, frameId, { type: 'CLICK_SEND' });
       await sleep(1200);
-      state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+      state = await askFrame(tab.id, frameId, { type: 'COMPOSER_STATE' });
       if (state.text && state.text.trim()) {
         throw new Error('Текст набран, но не отправился. ' +
           (click.ok ? 'Кнопка: ' + click.desc : 'Кнопка «Отправить» не найдена'));
