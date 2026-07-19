@@ -157,6 +157,24 @@ function applyAliases(fields, settings) {
   fields['количество звонков'] = String(settings.calls || '0').trim() || '0';
 }
 
+// Метки, задаваемые расшифровкой: для них нечёткий поиск запрещён —
+// либо точное поле есть, либо метка считается ненайденной
+const STRICT_KEYS = new Set([
+  ...FIELD_ALIASES.map(([alias]) => norm(alias)),
+  norm('общее количество дмх'),
+  norm('количество звонков'),
+  norm('дата'),
+  norm('тип дня')
+]);
+
+function exactField(name, fields) {
+  const key = norm(name);
+  for (const [label, value] of Object.entries(fields)) {
+    if (norm(label) === key) return value;
+  }
+  return null;
+}
+
 // Заполняет шаблон: {date}/{time} — текущие дата и время,
 // остальные {метки} берутся из данных портала
 function buildMessage(template, fields, settings) {
@@ -168,7 +186,9 @@ function buildMessage(template, fields, settings) {
   const text = template.replace(/\{([^{}]+)\}/g, (whole, name) => {
     if (name === 'date') return date;
     if (name === 'time') return time;
-    const value = resolveField(name, fields);
+    const value = STRICT_KEYS.has(norm(name))
+      ? exactField(name, fields)
+      : resolveField(name, fields);
     if (value === null) {
       unmatched.push(name);
       return whole; // оставляем {метку} как есть — видно, что не нашлось
