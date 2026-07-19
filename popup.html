@@ -48,8 +48,10 @@
     <section class="card row-anim" style="--i:3">
       <label class="field">
         <span class="field-name">Шаблон отчёта</span>
-        <textarea id="template" rows="4" placeholder="Отчёт за {date}:&#10;- сделал то-то"></textarea>
-        <small><code>{date}</code> — дата, <code>{time}</code> — время</small>
+        <textarea id="template" rows="8"></textarea>
+        <small>значения в <code>{…}</code> подтягиваются с портала МТС;
+        <code>{date}</code>/<code>{time}</code> — текущие дата и время
+        · <a href="#" id="resetTemplate">вернуть стандартный</a></small>
       </label>
     </section>
 
@@ -60,6 +62,15 @@
         <span class="btn-label">Отправить сейчас</span>
       </button>
     </div>
+
+    <div class="buttons">
+      <button id="preview" class="btn ghost small">
+        <span class="spinner"></span>
+        <span class="btn-label">Проверить данные с портала</span>
+      </button>
+    </div>
+
+    <pre id="previewBox" hidden></pre>
 
     <p id="status" class="row-anim" style="--i:5"></p>
   </div>

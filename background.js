@@ -5,12 +5,25 @@
 
 const ALARM_NAME = 'vk-report';
 
+const MTS_URL = 'https://inventory.ural.mts.ru/pc/agent_day.php';
+
+const DEFAULT_TEMPLATE = [
+  '{дата} {тип дня}',
+  'Общее количество ДМХ: {общее количество дмх}',
+  'Поквартирный обход ДМХ: {поквартирный обход дмх}',
+  'Общее время поквартирного обхода: {общее время поквартирного обхода}',
+  'Визуализация, дмх: {визуализация дмх}',
+  'Общее время визуализации: {общее время визуализации}',
+  'Общее время: {общее время}',
+  'Количество звонков: {количество звонков}'
+].join('\n');
+
 const DEFAULTS = {
   enabled: false,
   peerId: '',            // id диалога: число, "c123" для беседы или короткое имя
   time: '18:00',         // время отправки ЧЧ:ММ
   days: [1, 2, 3, 4, 5], // дни недели (0 = воскресенье)
-  template: 'Отчёт за {date}:\n- ',
+  template: DEFAULT_TEMPLATE,
   lastSentDate: ''       // защита от повторной отправки в тот же день
 };
 
@@ -39,11 +52,92 @@ async function scheduleAlarm() {
   chrome.alarms.create(ALARM_NAME, { when: next.getTime() });
 }
 
-function formatReport(template) {
+// ---------- данные с портала МТС ----------
+
+// нормализация для сопоставления меток: без регистра, пробелов и знаков
+function norm(s) {
+  return String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]/g, '');
+}
+
+// Ищет значение для подстановки {name}: точное совпадение метки,
+// иначе лучшая метка, содержащая имя (или наоборот)
+function resolveField(name, fields) {
+  const n = norm(name);
+  if (!n) return null;
+  let best = null;
+  let bestScore = 0;
+  for (const [label, value] of Object.entries(fields)) {
+    const l = norm(label);
+    if (l === n) return value;
+    if (l.includes(n) || n.includes(l)) {
+      const score = Math.min(l.length, n.length);
+      if (score > bestScore) { bestScore = score; best = value; }
+    }
+  }
+  return best;
+}
+
+// Открывает страницу отчёта МТС и собирает пары «метка → значение»
+async function fetchReportData() {
+  const tabs = await chrome.tabs.query({ url: 'https://inventory.ural.mts.ru/*' });
+  let tab = tabs.find(t => t.url && t.url.includes('agent_day.php')) || tabs[0];
+  let created = false;
+  if (!tab) {
+    tab = await chrome.tabs.create({ url: MTS_URL, active: false });
+    created = true;
+  }
+
+  const deadline = Date.now() + 30000;
+  let fields = null;
+  while (Date.now() < deadline) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        files: ['mts.js']
+      });
+      const merged = {};
+      for (const r of results) {
+        try {
+          const resp = await chrome.tabs.sendMessage(tab.id, { type: 'SCRAPE_MTS' }, { frameId: r.frameId });
+          if (resp && resp.ok) Object.assign(merged, resp.fields);
+        } catch (e) { /* фрейм недоступен */ }
+      }
+      if (Object.keys(merged).length) fields = merged;
+      // страница считается загруженной, когда виден блок с типом дня
+      // или набралось достаточно показателей
+      if (fields && (resolveField('тип дня', fields) !== null || Object.keys(fields).length >= 8)) break;
+    } catch (e) { /* страница ещё грузится */ }
+    await sleep(1500);
+  }
+
+  if (created) {
+    try { await chrome.tabs.remove(tab.id); } catch (e) { /* уже закрыта */ }
+  }
+  if (!fields || !Object.keys(fields).length) {
+    throw new Error('Не удалось получить данные с портала МТС. Откройте ' + MTS_URL +
+      ' вручную и проверьте, что выполнен вход.');
+  }
+  return fields;
+}
+
+// Заполняет шаблон: {date}/{time} — текущие дата и время,
+// остальные {метки} берутся из данных портала
+function buildMessage(template, fields) {
   const now = new Date();
   const date = now.toLocaleDateString('ru-RU');
   const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  return template.replaceAll('{date}', date).replaceAll('{time}', time);
+  const unmatched = [];
+  const text = template.replace(/\{([^{}]+)\}/g, (whole, name) => {
+    if (name === 'date') return date;
+    if (name === 'time') return time;
+    const value = resolveField(name, fields);
+    if (value === null) {
+      unmatched.push(name);
+      return whole; // оставляем {метку} как есть — видно, что не нашлось
+    }
+    return value;
+  });
+  return { text, unmatched };
 }
 
 // 2000000066 — внутренний peer_id беседы №66; в адресе ВК это "c66"
@@ -153,7 +247,13 @@ async function sendReport() {
   const s = await getSettings();
   if (!s.peerId) throw new Error('Не указан чат (peerId)');
 
-  const message = formatReport(s.template);
+  // собираем данные с портала МТС и заполняем шаблон
+  const fields = await fetchReportData();
+  const { text: message, unmatched } = buildMessage(s.template, fields);
+  if (unmatched.length) {
+    notify('VK Авто-отчёт — внимание',
+      'Не нашлись на портале: ' + unmatched.join(', ') + '. Отправляю как есть.');
+  }
   const sel = normalizePeer(s.peerId);
   const url = `https://vk.com/im?sel=${encodeURIComponent(sel)}`;
 
@@ -242,6 +342,17 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'RESCHEDULE') {
     scheduleAlarm().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg.type === 'PREVIEW_REPORT') {
+    (async () => {
+      const s = await getSettings();
+      const fields = await fetchReportData();
+      const { text, unmatched } = buildMessage(s.template, fields);
+      return { ok: true, text, unmatched, fields };
+    })()
+      .then(sendResponse)
+      .catch(e => sendResponse({ ok: false, error: e.message }));
     return true;
   }
   if (msg.type === 'SEND_NOW') {

@@ -228,6 +228,38 @@ code {
   margin-top: 2px;
 }
 
+.buttons + .buttons { margin-top: 8px; }
+
+.btn.small {
+  padding: 8px 0;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+a {
+  color: #6ab0ff;
+  text-decoration: none;
+}
+
+a:hover { text-decoration: underline; }
+
+#previewBox {
+  margin: 10px 0 0;
+  padding: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font: 11px/1.5 ui-monospace, Consolas, monospace;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+  animation: rise 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+#previewBox .warn { color: #ffc857; }
+
 .btn {
   position: relative;
   flex: 1;

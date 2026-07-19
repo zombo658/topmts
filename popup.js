@@ -1,11 +1,23 @@
-// Логика попапа: загрузка/сохранение настроек и отправка «сейчас».
+// Логика попапа: загрузка/сохранение настроек, предпросмотр данных
+// с портала МТС и отправка «сейчас».
+
+const DEFAULT_TEMPLATE = [
+  '{дата} {тип дня}',
+  'Общее количество ДМХ: {общее количество дмх}',
+  'Поквартирный обход ДМХ: {поквартирный обход дмх}',
+  'Общее время поквартирного обхода: {общее время поквартирного обхода}',
+  'Визуализация, дмх: {визуализация дмх}',
+  'Общее время визуализации: {общее время визуализации}',
+  'Общее время: {общее время}',
+  'Количество звонков: {количество звонков}'
+].join('\n');
 
 const DEFAULTS = {
   enabled: false,
   peerId: '',
   time: '18:00',
   days: [1, 2, 3, 4, 5],
-  template: 'Отчёт за {date}:\n- '
+  template: DEFAULT_TEMPLATE
 };
 
 const $ = id => document.getElementById(id);
@@ -44,7 +56,7 @@ async function save() {
     peerId: $('peerId').value.trim(),
     time: $('time').value || '18:00',
     days,
-    template: $('template').value || DEFAULTS.template
+    template: $('template').value || DEFAULT_TEMPLATE
   };
 
   if (s.enabled && !s.peerId) {
@@ -70,15 +82,14 @@ async function onSendNow() {
   const btn = $('sendNow');
   pressAnim(btn);
 
-  const peerId = $('peerId').value.trim();
-  if (!peerId) {
+  if (!$('peerId').value.trim()) {
     setStatus('Укажите чат', true);
     return;
   }
   if (!(await save())) return;
 
   btn.classList.add('loading');
-  setStatus('Отправляю…');
+  setStatus('Собираю данные и отправляю…');
   try {
     const resp = await chrome.runtime.sendMessage({ type: 'SEND_NOW' });
     if (resp && resp.ok) {
@@ -91,6 +102,52 @@ async function onSendNow() {
   }
 }
 
+// Предпросмотр: собирает данные с портала и показывает готовый текст
+// отчёта + список меток, которые не нашлись
+async function onPreview() {
+  const btn = $('preview');
+  pressAnim(btn);
+  await save();
+
+  btn.classList.add('loading');
+  setStatus('Загружаю данные с портала…');
+  const box = $('previewBox');
+  try {
+    const resp = await chrome.runtime.sendMessage({ type: 'PREVIEW_REPORT' });
+    box.hidden = false;
+    if (resp && resp.ok) {
+      let html = '— Так будет выглядеть отчёт —\n\n' + escapeHtml(resp.text);
+      if (resp.unmatched && resp.unmatched.length) {
+        html += '\n\n<span class="warn">⚠ Не нашлись на портале: ' +
+          escapeHtml(resp.unmatched.join(', ')) + '</span>';
+      }
+      html += '\n\n— Все данные, найденные на странице —\n' +
+        Object.entries(resp.fields || {})
+          .map(([k, v]) => escapeHtml(k + ': ' + v))
+          .join('\n');
+      box.innerHTML = html;
+      setStatus(resp.unmatched && resp.unmatched.length
+        ? 'Данные получены, но не все метки нашлись' : 'Данные получены ✓',
+        resp.unmatched && resp.unmatched.length > 0);
+    } else {
+      box.hidden = true;
+      setStatus('Ошибка: ' + (resp && resp.error ? resp.error : 'неизвестная'), true);
+    }
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 $('save').addEventListener('click', onSave);
 $('sendNow').addEventListener('click', onSendNow);
+$('preview').addEventListener('click', onPreview);
+$('resetTemplate').addEventListener('click', (e) => {
+  e.preventDefault();
+  $('template').value = DEFAULT_TEMPLATE;
+  setStatus('Стандартный шаблон вставлен — нажмите «Сохранить»');
+});
 load();
