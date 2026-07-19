@@ -1,6 +1,6 @@
-// Контент-скрипт: вставляет текст в поле ввода чата ВК и отправляет его.
-// Вёрстка ВК часто меняется, поэтому сначала пробуем известные селекторы,
-// а затем ищем поле ввода и кнопку отправки эвристически.
+// Контент-скрипт: находит поле ввода чата ВК и кнопку «Отправить».
+// Сам ввод текста делает background.js через DevTools-протокол,
+// здесь только поиск элементов, фокус и проверка состояния.
 
 const INPUT_SELECTORS = [
   '#im_editable',                                  // старый интерфейс im
@@ -20,6 +20,8 @@ const SEND_BUTTON_SELECTORS = [
   '[aria-label="Отправить сообщение"]'
 ];
 
+let composer = null; // найденное поле ввода — используется между запросами
+
 function isVisible(el) {
   if (!el) return false;
   const rects = el.getClientRects();
@@ -33,7 +35,7 @@ function findComposer() {
     const el = document.querySelector(sel);
     if (isVisible(el)) return el;
   }
-  // Эвристика: самое нижнее видимое contenteditable-поле на странице —
+  // Эвристика: самое нижнее видимое редактируемое поле на странице —
   // в мессенджере это всегда строка ввода сообщения
   const candidates = [...document.querySelectorAll('[contenteditable="true"], textarea')]
     .filter(isVisible);
@@ -42,14 +44,12 @@ function findComposer() {
   return candidates[candidates.length - 1];
 }
 
-function findSendButton(composer) {
+function findSendButton(near) {
   for (const sel of SEND_BUTTON_SELECTORS) {
     const el = document.querySelector(sel);
     if (isVisible(el)) return el;
   }
-  // Эвристика: видимая кнопка с подписью/aria-label «Отправить»,
-  // ближайшая к полю ввода
-  const composerRect = composer.getBoundingClientRect();
+  const nearRect = near ? near.getBoundingClientRect() : { top: window.innerHeight };
   const buttons = [...document.querySelectorAll('button, [role="button"]')]
     .filter(isVisible)
     .filter(b => {
@@ -58,109 +58,10 @@ function findSendButton(composer) {
       return /отправить|send/i.test(label);
     });
   if (!buttons.length) return null;
-  buttons.sort((a, b) => {
-    const da = Math.abs(a.getBoundingClientRect().top - composerRect.top);
-    const db = Math.abs(b.getBoundingClientRect().top - composerRect.top);
-    return da - db;
-  });
+  buttons.sort((a, b) =>
+    Math.abs(a.getBoundingClientRect().top - nearRect.top) -
+    Math.abs(b.getBoundingClientRect().top - nearRect.top));
   return buttons[0];
-}
-
-function getText(input) {
-  return (input.value !== undefined ? input.value : input.innerText) || '';
-}
-
-function placeCaret(input) {
-  input.focus();
-  if (input.value !== undefined) return; // textarea
-  const range = document.createRange();
-  range.selectNodeContents(input);
-  range.collapse(false);
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-// Три способа вставки текста — от самого «естественного» к грубому.
-// Современные редакторы (Slate/ProseMirror, которые использует ВК)
-// надёжнее всего реагируют на событие paste.
-function insertText(input, text) {
-  placeCaret(input);
-
-  // 1) синтетический paste
-  try {
-    const dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    input.dispatchEvent(new ClipboardEvent('paste', {
-      clipboardData: dt, bubbles: true, cancelable: true
-    }));
-    if (getText(input).includes(text.slice(0, 20))) return 'paste';
-  } catch (e) { /* пробуем дальше */ }
-
-  // 2) execCommand insertText
-  placeCaret(input);
-  document.execCommand('insertText', false, text);
-  if (getText(input).includes(text.slice(0, 20))) return 'execCommand';
-
-  // 3) прямое изменение + событие input
-  if (input.value !== undefined) {
-    input.value = text;
-  } else {
-    input.innerText = text;
-  }
-  input.dispatchEvent(new InputEvent('input', {
-    bubbles: true, data: text, inputType: 'insertText'
-  }));
-  return getText(input).includes(text.slice(0, 20)) ? 'direct' : null;
-}
-
-function pressEnter(input) {
-  const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
-  input.focus();
-  input.dispatchEvent(new KeyboardEvent('keydown', opts));
-  input.dispatchEvent(new KeyboardEvent('keypress', opts));
-  input.dispatchEvent(new KeyboardEvent('keyup', opts));
-}
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-async function sendMessage(text) {
-  const input = findComposer();
-  if (!input) {
-    return { ok: false, error: 'Поле ввода не найдено — чат ещё не загрузился или интерфейс изменился' };
-  }
-
-  const method = insertText(input, text);
-  if (!method) {
-    return { ok: false, error: 'Не удалось вставить текст в поле ввода (' + describe(input) + ')' };
-  }
-  console.log('[VK Авто-отчёт] текст вставлен методом:', method, 'в', describe(input));
-
-  await sleep(600); // даём ВК обработать ввод и активировать кнопку
-
-  const btn = findSendButton(input);
-  if (btn) {
-    console.log('[VK Авто-отчёт] жму кнопку отправки:', describe(btn));
-    btn.click();
-  } else {
-    console.log('[VK Авто-отчёт] кнопка не найдена, отправляю Enter');
-    pressEnter(input);
-  }
-
-  // поле очистилось — сообщение ушло
-  await sleep(1200);
-  if (!getText(input).trim()) return { ok: true, method, sent: btn ? 'button' : 'enter' };
-
-  // вторая попытка другим способом
-  if (btn) pressEnter(input); else { const b2 = findSendButton(input); if (b2) b2.click(); }
-  await sleep(1200);
-  if (!getText(input).trim()) return { ok: true, method, sent: 'retry' };
-
-  return {
-    ok: false,
-    error: 'Текст вставлен (' + method + '), но отправка не сработала: поле не очистилось. ' +
-           (btn ? 'Кнопка: ' + describe(btn) : 'Кнопка отправки не найдена')
-  };
 }
 
 function describe(el) {
@@ -170,14 +71,56 @@ function describe(el) {
   return el.tagName.toLowerCase() + id + cls;
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === 'SEND_VK_MESSAGE') {
-    sendMessage(msg.text)
-      .then(sendResponse)
-      .catch(e => sendResponse({ ok: false, error: e.message }));
-    return true; // асинхронный ответ
+function getText(el) {
+  return (el.value !== undefined ? el.value : el.innerText) || '';
+}
+
+function prepareComposer() {
+  composer = findComposer();
+  if (!composer) {
+    return { ok: false, error: 'поле ввода не найдено' };
   }
-  if (msg.type === 'PING') {
-    sendResponse({ ok: true });
+  composer.scrollIntoView({ block: 'center' });
+  composer.click();
+  composer.focus();
+  // ставим курсор в конец для contenteditable
+  if (composer.value === undefined) {
+    const range = document.createRange();
+    range.selectNodeContents(composer);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+  const focused = document.activeElement === composer ||
+                  composer.contains(document.activeElement);
+  console.log('[VK Авто-отчёт] поле ввода:', describe(composer), 'фокус:', focused);
+  return { ok: true, desc: describe(composer), focused };
+}
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  switch (msg.type) {
+    case 'PREPARE_COMPOSER':
+      sendResponse(prepareComposer());
+      break;
+    case 'COMPOSER_STATE': {
+      const el = composer && document.contains(composer) ? composer : findComposer();
+      sendResponse(el ? { ok: true, text: getText(el) } : { ok: false, text: '' });
+      break;
+    }
+    case 'CLICK_SEND': {
+      const btn = findSendButton(composer);
+      if (btn) {
+        console.log('[VK Авто-отчёт] жму кнопку:', describe(btn));
+        btn.click();
+        sendResponse({ ok: true, desc: describe(btn) });
+      } else {
+        sendResponse({ ok: false });
+      }
+      break;
+    }
+    case 'PING':
+      sendResponse({ ok: true });
+      break;
   }
 });

@@ -1,4 +1,7 @@
-// Фоновый service worker: планирует отправку отчёта и открывает чат ВК.
+// Фоновый service worker: планирует отправку отчёта, открывает чат ВК
+// и печатает сообщение через протокол DevTools (chrome.debugger) —
+// такие события клавиатуры для страницы неотличимы от настоящих,
+// поэтому работают с любым редактором ВК.
 
 const ALARM_NAME = 'vk-report';
 
@@ -15,7 +18,8 @@ function getSettings() {
   return chrome.storage.sync.get(DEFAULTS);
 }
 
-// Ставим будильник на ближайший подходящий день/время
+// ---------- расписание ----------
+
 async function scheduleAlarm() {
   await chrome.alarms.clear(ALARM_NAME);
   const s = await getSettings();
@@ -44,14 +48,73 @@ function formatReport(template) {
 
 function chatUrl(peerId) {
   const id = String(peerId).trim();
-  // "c123" — беседа, число — пользователь/группа, иначе короткое имя
-  if (/^c\d+$/.test(id) || /^-?\d+$/.test(id)) {
-    return `https://vk.com/im?sel=${id}`;
-  }
   return `https://vk.com/im?sel=${encodeURIComponent(id)}`;
 }
 
-// Открывает чат и просит контент-скрипт отправить текст
+// ---------- утилиты ----------
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function notify(title, message) {
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title,
+    message
+  });
+}
+
+// Запрос контент-скрипту; при отсутствии скрипта на странице — внедряем его
+async function askTab(tabId, msg, { inject = true } = {}) {
+  try {
+    return await chrome.tabs.sendMessage(tabId, msg);
+  } catch (e) {
+    if (inject && /Receiving end|Could not establish/i.test(e.message)) {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+      await sleep(300);
+      return chrome.tabs.sendMessage(tabId, msg);
+    }
+    throw e;
+  }
+}
+
+// ---------- ввод через DevTools-протокол ----------
+
+function cdpAttach(tabId) {
+  return new Promise((resolve, reject) => {
+    chrome.debugger.attach({ tabId }, '1.3', () => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve();
+    });
+  });
+}
+
+function cdpDetach(tabId) {
+  return new Promise(resolve => {
+    chrome.debugger.detach({ tabId }, () => {
+      void chrome.runtime.lastError; // уже отсоединён — не страшно
+      resolve();
+    });
+  });
+}
+
+function cdp(tabId, method, params) {
+  return new Promise((resolve, reject) => {
+    chrome.debugger.sendCommand({ tabId }, method, params, (result) => {
+      if (chrome.runtime.lastError) reject(new Error(chrome.runtime.lastError.message));
+      else resolve(result);
+    });
+  });
+}
+
+async function cdpPressEnter(tabId) {
+  const base = { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, nativeVirtualKeyCode: 13 };
+  await cdp(tabId, 'Input.dispatchKeyEvent', { ...base, type: 'keyDown', text: '\r', unmodifiedText: '\r' });
+  await cdp(tabId, 'Input.dispatchKeyEvent', { ...base, type: 'keyUp' });
+}
+
+// ---------- отправка отчёта ----------
+
 async function sendReport() {
   const s = await getSettings();
   if (!s.peerId) throw new Error('Не указан чат (peerId)');
@@ -63,47 +126,60 @@ async function sendReport() {
   const tabs = await chrome.tabs.query({ url: ['https://vk.com/im*', 'https://*.vk.me/*'] });
   let tab = tabs.find(t => t.url && t.url.includes(`sel=${s.peerId}`));
   if (!tab) {
-    tab = await chrome.tabs.create({ url, active: false });
+    tab = await chrome.tabs.create({ url, active: true });
+  } else {
+    await chrome.tabs.update(tab.id, { active: true });
+  }
+  // Фокус на окно — нужен, чтобы ввод с клавиатуры попадал в поле чата
+  await chrome.windows.update(tab.windowId, { focused: true });
+
+  // Ждём, пока чат загрузится и контент-скрипт найдёт и сфокусирует поле ввода
+  const deadline = Date.now() + 45000;
+  let prep = null;
+  while (Date.now() < deadline) {
+    try {
+      prep = await askTab(tab.id, { type: 'PREPARE_COMPOSER' });
+      if (prep && prep.ok) break;
+    } catch (e) { /* страница ещё грузится */ }
+    await sleep(1500);
+  }
+  if (!prep || !prep.ok) {
+    throw new Error('Поле ввода чата не появилось за 45 сек' +
+      (prep && prep.error ? ': ' + prep.error : ''));
   }
 
-  // Ждём загрузку страницы и появления поля ввода, затем шлём сообщение
-  const text = await waitAndSend(tab.id, message);
-  return text;
-}
+  // Печатаем через DevTools-протокол — «настоящий» ввод
+  await cdpAttach(tab.id);
+  try {
+    await askTab(tab.id, { type: 'PREPARE_COMPOSER' }); // повторный фокус
+    await cdp(tab.id, 'Input.insertText', { text: message });
+    await sleep(600);
 
-function waitAndSend(tabId, message) {
-  return new Promise((resolve, reject) => {
-    const deadline = Date.now() + 60000;
-    let injected = false;
-    let lastError = '';
+    let state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+    if (!state.text || !state.text.trim()) {
+      throw new Error('Текст не появился в поле ввода (найдено: ' + prep.desc + ')');
+    }
 
-    const attempt = async () => {
-      try {
-        const resp = await chrome.tabs.sendMessage(tabId, { type: 'SEND_VK_MESSAGE', text: message });
-        if (resp && resp.ok) return resolve(resp);
-        throw new Error(resp && resp.error ? resp.error : 'Не удалось отправить');
-      } catch (e) {
-        lastError = e.message;
-        // Контент-скрипта нет на странице (вкладка открыта до установки
-        // расширения) — внедряем его вручную
-        if (!injected && /Receiving end|Could not establish/i.test(e.message)) {
-          injected = true;
-          try {
-            await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-          } catch (injErr) {
-            lastError += '; инъекция скрипта: ' + injErr.message;
-          }
-        }
-        if (Date.now() > deadline) {
-          return reject(new Error('Не удалось отправить за 60 сек. Последняя ошибка: ' + lastError));
-        }
-        setTimeout(attempt, 2000);
+    await cdpPressEnter(tab.id);
+    await sleep(1200);
+
+    state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+    if (state.text && state.text.trim()) {
+      // Enter не сработал — пробуем кнопку «Отправить»
+      const click = await askTab(tab.id, { type: 'CLICK_SEND' });
+      await sleep(1200);
+      state = await askTab(tab.id, { type: 'COMPOSER_STATE' });
+      if (state.text && state.text.trim()) {
+        throw new Error('Текст набран, но не отправился. ' +
+          (click.ok ? 'Кнопка: ' + click.desc : 'Кнопка «Отправить» не найдена'));
       }
-    };
-
-    setTimeout(attempt, 3000);
-  });
+    }
+  } finally {
+    await cdpDetach(tab.id);
+  }
 }
+
+// ---------- события ----------
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== ALARM_NAME) return;
@@ -113,15 +189,16 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     if (s.enabled && s.lastSentDate !== today) {
       await sendReport();
       await chrome.storage.sync.set({ lastSentDate: today });
+      notify('VK Авто-отчёт', 'Отчёт отправлен ✓');
     }
   } catch (e) {
     console.error('VK Авто-отчёт: ошибка отправки', e);
+    notify('VK Авто-отчёт — ошибка', e.message);
   } finally {
     scheduleAlarm();
   }
 });
 
-// Сообщения из попапа
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'RESCHEDULE') {
     scheduleAlarm().then(() => sendResponse({ ok: true }));
@@ -129,8 +206,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg.type === 'SEND_NOW') {
     sendReport()
-      .then(() => sendResponse({ ok: true }))
-      .catch(e => sendResponse({ ok: false, error: e.message }));
+      .then(() => {
+        notify('VK Авто-отчёт', 'Отчёт отправлен ✓');
+        sendResponse({ ok: true });
+      })
+      .catch(e => {
+        notify('VK Авто-отчёт — ошибка', e.message);
+        sendResponse({ ok: false, error: e.message });
+      });
     return true;
   }
 });

@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "VK Авто-отчёт",
   "description": "Автоматически отправляет отчёт в выбранный чат ВКонтакте по расписанию",
-  "version": "1.1.0",
-  "permissions": ["storage", "alarms", "tabs", "scripting"],
+  "version": "1.2.0",
+  "permissions": ["storage", "alarms", "tabs", "scripting", "debugger", "notifications"],
   "host_permissions": ["https://vk.com/*", "https://*.vk.com/*", "https://*.vk.me/*"],
   "background": {
     "service_worker": "background.js"
