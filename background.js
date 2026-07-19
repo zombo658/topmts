@@ -60,7 +60,7 @@ async function sendReport() {
   const url = chatUrl(s.peerId);
 
   // Ищем уже открытую вкладку с этим чатом, иначе открываем новую
-  const tabs = await chrome.tabs.query({ url: 'https://vk.com/im*' });
+  const tabs = await chrome.tabs.query({ url: ['https://vk.com/im*', 'https://*.vk.me/*'] });
   let tab = tabs.find(t => t.url && t.url.includes(`sel=${s.peerId}`));
   if (!tab) {
     tab = await chrome.tabs.create({ url, active: false });
@@ -74,6 +74,8 @@ async function sendReport() {
 function waitAndSend(tabId, message) {
   return new Promise((resolve, reject) => {
     const deadline = Date.now() + 60000;
+    let injected = false;
+    let lastError = '';
 
     const attempt = async () => {
       try {
@@ -81,8 +83,19 @@ function waitAndSend(tabId, message) {
         if (resp && resp.ok) return resolve(resp);
         throw new Error(resp && resp.error ? resp.error : 'Не удалось отправить');
       } catch (e) {
+        lastError = e.message;
+        // Контент-скрипта нет на странице (вкладка открыта до установки
+        // расширения) — внедряем его вручную
+        if (!injected && /Receiving end|Could not establish/i.test(e.message)) {
+          injected = true;
+          try {
+            await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+          } catch (injErr) {
+            lastError += '; инъекция скрипта: ' + injErr.message;
+          }
+        }
         if (Date.now() > deadline) {
-          return reject(new Error('Тайм-аут: поле ввода чата не найдено. ' + e.message));
+          return reject(new Error('Не удалось отправить за 60 сек. Последняя ошибка: ' + lastError));
         }
         setTimeout(attempt, 2000);
       }
