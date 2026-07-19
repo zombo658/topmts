@@ -46,9 +46,12 @@ function formatReport(template) {
   return template.replaceAll('{date}', date).replaceAll('{time}', time);
 }
 
-function chatUrl(peerId) {
+// 2000000066 — внутренний peer_id беседы №66; в адресе ВК это "c66"
+function normalizePeer(peerId) {
   const id = String(peerId).trim();
-  return `https://vk.com/im?sel=${encodeURIComponent(id)}`;
+  const n = Number(id);
+  if (Number.isFinite(n) && n >= 2000000000) return 'c' + (n - 2000000000);
+  return id;
 }
 
 // ---------- утилиты ----------
@@ -151,11 +154,14 @@ async function sendReport() {
   if (!s.peerId) throw new Error('Не указан чат (peerId)');
 
   const message = formatReport(s.template);
-  const url = chatUrl(s.peerId);
+  const sel = normalizePeer(s.peerId);
+  const url = `https://vk.com/im?sel=${encodeURIComponent(sel)}`;
 
   // Ищем уже открытую вкладку с этим чатом, иначе открываем новую
-  const tabs = await chrome.tabs.query({ url: ['https://vk.com/im*', 'https://*.vk.me/*'] });
-  let tab = tabs.find(t => t.url && t.url.includes(`sel=${s.peerId}`));
+  const tabs = await chrome.tabs.query({
+    url: ['https://vk.com/im*', 'https://vk.ru/im*', 'https://*.vk.me/*']
+  });
+  let tab = tabs.find(t => t.url && t.url.includes(`sel=${sel}`));
   if (!tab) {
     tab = await chrome.tabs.create({ url, active: true });
   } else {
