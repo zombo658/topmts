@@ -1,0 +1,25 @@
+name: Отправка отчётов в ВК
+
+on:
+  schedule:
+    # 13:00 UTC = 18:00 по Екатеринбургу (UTC+5).
+    # Чтобы поменять время, пересчитайте в UTC: местное минус 5 часов.
+    - cron: '0 13 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Отправить отчёты
+        run: node automation/send-report.js
+        env:
+          EMPLOYEES: ${{ secrets.EMPLOYEES }}
+          VK_TOKEN: ${{ secrets.VK_TOKEN }}
+          VK_PEER: ${{ secrets.VK_PEER }}
+          DAYS: ${{ vars.DAYS }}
+          TZ_OFFSET: ${{ vars.TZ_OFFSET }}
