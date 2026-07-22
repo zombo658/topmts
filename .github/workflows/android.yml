@@ -3,9 +3,14 @@ name: Сборка Android APK
 on:
   workflow_dispatch: {}
   push:
-    paths:
-      - 'android/**'
-      - '.github/workflows/android.yml'
+    branches:
+      - main
+      - 'claude/**'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -34,9 +39,26 @@ jobs:
         working-directory: android
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Выложить APK
+      - name: Переименовать APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk otchet-mts-vk.apk
+
+      - name: Выложить APK артефактом
         uses: actions/upload-artifact@v4
         with:
           name: otchet-mts-vk-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: otchet-mts-vk.apk
           if-no-files-found: error
+
+      - name: Опубликовать релиз с APK
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: otchet-mts-vk.apk
+          name: Отчёт МТС→ВК ${{ github.ref_name }}
+          body: |
+            Приложение для Android: автоматический отчёт с портала МТС в чат ВК.
+
+            **Установка:** скачайте `otchet-mts-vk.apk` ниже, откройте на телефоне,
+            разрешите установку из этого источника. Настройка — в `android/README.md`.
+
+            Другие варианты (расширение для ПК, облако для iPhone) — см. README репозитория.
