@@ -21,7 +21,7 @@ const DEFAULT_TEMPLATE = [
 const DEFAULTS = {
   enabled: false,
   peerId: '',            // id диалога: число, "c123" для беседы или короткое имя
-  time: '18:00',         // время отправки ЧЧ:ММ
+  time: '22:00',         // время отправки ЧЧ:ММ
   days: [1, 2, 3, 4, 5], // дни недели (0 = воскресенье)
   template: DEFAULT_TEMPLATE,
   calls: '0',            // количество звонков — вводится вручную в попапе

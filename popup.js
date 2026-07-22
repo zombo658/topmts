@@ -15,7 +15,7 @@ const DEFAULT_TEMPLATE = [
 const DEFAULTS = {
   enabled: false,
   peerId: '',
-  time: '18:00',
+  time: '22:00',
   days: [1, 2, 3, 4, 5],
   template: DEFAULT_TEMPLATE,
   calls: '0'
@@ -56,7 +56,7 @@ async function save() {
   const s = {
     enabled: $('enabled').checked,
     peerId: $('peerId').value.trim(),
-    time: $('time').value || '18:00',
+    time: $('time').value || '22:00',
     days,
     template: $('template').value || DEFAULT_TEMPLATE,
     calls: $('calls').value.trim() || '0'
