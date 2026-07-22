@@ -12,6 +12,7 @@ class AlarmReceiver : BroadcastReceiver() {
         val i = Intent(context, RunnerActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(RunnerActivity.EXTRA_FROM_ALARM, true)
         context.startActivity(i)
     }
 }

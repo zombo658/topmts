@@ -41,6 +41,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("enabled", false)
         set(v) = prefs.edit().putBoolean("enabled", v).apply()
 
+    /** Дата последней успешной отправки в формате ГГГГ-ММ-ДД — защита от дублей. */
+    var lastSentDate: String
+        get() = prefs.getString("lastSentDate", "") ?: ""
+        set(v) = prefs.edit().putString("lastSentDate", v).apply()
+
     val portalUrl = "https://inventory.ural.mts.ru/pc/agent_day.php"
 
     fun chatUrl(): String {

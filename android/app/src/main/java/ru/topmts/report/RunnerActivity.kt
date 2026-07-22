@@ -9,6 +9,9 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Небольшой видимый экран, внутри которого работает WebView отправки.
@@ -57,6 +60,16 @@ class RunnerActivity : Activity() {
         )
 
         val settings = Settings(this)
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        val fromAlarm = intent.getBooleanExtra(EXTRA_FROM_ALARM, false)
+
+        // авто-запуск по расписанию не отправляет повторно в тот же день —
+        // защита от дублей и анти-флуда ВК
+        if (fromAlarm && settings.lastSentDate == today) {
+            AlarmScheduler.schedule(applicationContext, settings)
+            finish()
+            return
+        }
 
         ReportRunner(
             context = this,
@@ -64,6 +77,7 @@ class RunnerActivity : Activity() {
             container = webHost,
             onProgress = { msg -> status.text = msg },
             onDone = { ok, message ->
+                if (ok) settings.lastSentDate = today
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()
                 status.text = message
                 // переставляем будильник на следующий раз
@@ -72,5 +86,9 @@ class RunnerActivity : Activity() {
                 status.postDelayed({ if (!isFinishing) finish() }, 2500)
             }
         ).start()
+    }
+
+    companion object {
+        const val EXTRA_FROM_ALARM = "fromAlarm"
     }
 }
