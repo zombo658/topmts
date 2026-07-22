@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D1117"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="18dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Отчёт МТС → ВК"
+            android:textColor="#2787F5"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:paddingBottom="12dp" />
+
+        <CheckBox
+            android:id="@+id/enabled"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Автоотправка включена"
+            android:textColor="#E6EDF3" />
+
+        <TextView style="@style/Label" android:text="Чат ВК (sel=… из адреса, напр. c66)" />
+        <EditText
+            android:id="@+id/peer"
+            style="@style/Input"
+            android:hint="c66 или 2000000066"
+            android:inputType="text" />
+
+        <TextView style="@style/Label" android:text="Домен ВК (vk.ru или vk.com)" />
+        <EditText
+            android:id="@+id/vkHost"
+            style="@style/Input"
+            android:hint="vk.ru"
+            android:inputType="text" />
+
+        <TextView style="@style/Label" android:text="Количество звонков за сегодня" />
+        <EditText
+            android:id="@+id/calls"
+            style="@style/Input"
+            android:hint="0"
+            android:inputType="number" />
+
+        <TextView style="@style/Label" android:text="Время отправки" />
+        <TimePicker
+            android:id="@+id/time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:timePickerMode="spinner" />
+
+        <TextView style="@style/Label" android:text="Дни недели" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox android:id="@+id/d1" style="@style/Day" android:text="Пн" />
+            <CheckBox android:id="@+id/d2" style="@style/Day" android:text="Вт" />
+            <CheckBox android:id="@+id/d3" style="@style/Day" android:text="Ср" />
+            <CheckBox android:id="@+id/d4" style="@style/Day" android:text="Чт" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <CheckBox android:id="@+id/d5" style="@style/Day" android:text="Пт" />
+            <CheckBox android:id="@+id/d6" style="@style/Day" android:text="Сб" />
+            <CheckBox android:id="@+id/d7" style="@style/Day" android:text="Вс" />
+        </LinearLayout>
+
+        <TextView style="@style/Label" android:text="Шаблон отчёта ({метки} — с портала)" />
+        <EditText
+            android:id="@+id/template"
+            style="@style/Input"
+            android:minLines="6"
+            android:gravity="top"
+            android:inputType="textMultiLine" />
+
+        <Button
+            android:id="@+id/save"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Сохранить" />
+
+        <Button
+            android:id="@+id/loginPortal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Войти в портал МТС" />
+
+        <Button
+            android:id="@+id/loginVk"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Войти в ВК" />
+
+        <Button
+            android:id="@+id/sendNow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Отправить сейчас" />
+
+        <TextView
+            android:id="@+id/hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:textColor="#8B949E"
+            android:textSize="12sp"
+            android:text="Один раз войдите в портал и в ВК — сессии сохранятся. Разрешите приложению «точные будильники» и «уведомления». Телефон должен быть включён к назначенному времени." />
+
+    </LinearLayout>
+</ScrollView>
