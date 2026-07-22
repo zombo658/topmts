@@ -55,8 +55,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.sendNow).setOnClickListener {
             save()
             if (settings.peer.isBlank()) { toast("Укажите чат"); return@setOnClickListener }
-            SendService.start(this)
-            toast("Запущено — следите за уведомлением")
+            startActivity(Intent(this, RunnerActivity::class.java))
         }
 
         requestRuntimePermissions()

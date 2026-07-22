@@ -3,19 +3,24 @@ package ru.topmts.report
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import org.json.JSONTokener
 
 /**
- * Прогоняет весь цикл в скрытом WebView:
+ * Прогоняет весь цикл в WebView:
  *   портал → сбор отчёта → чат ВК → вставка и отправка.
  * Использует сохранённые cookie (вход выполняется один раз в LoginActivity).
+ * WebView прикрепляется к [container] (видимой Activity) — так страница
+ * гарантированно рендерится и вызывает колбэки; без окна фон «висит».
  */
 class ReportRunner(
     private val context: Context,
     private val settings: Settings,
+    private val container: ViewGroup?,
+    private val onProgress: (String) -> Unit,
     private val onDone: (Boolean, String) -> Unit
 ) {
     private val handler = Handler(Looper.getMainLooper())
@@ -33,15 +38,28 @@ class ReportRunner(
         wv.settings.domStorageEnabled = true
         wv.settings.userAgentString =
             "Mozilla/5.0 (Linux; Android 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
-        // скрытый WebView всё равно нужно «разложить», чтобы страница отрендерилась
-        wv.layout(0, 0, 1080, 1920)
+        // прикрепляем WebView к окну — иначе страница не рендерится
+        if (container != null) {
+            container.addView(
+                wv,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
+        } else {
+            wv.layout(0, 0, 1080, 1920)
+        }
 
+        onProgress("Открываю портал…")
         wv.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView, url: String?) {
                 val u = url ?: return
                 if (u.contains("agent_day.php")) {
+                    onProgress("Собираю данные с портала…")
                     handler.postDelayed({ pollScrape() }, 1500)
                 } else if (u.contains("/im")) {
+                    onProgress("Открываю чат ВК…")
                     handler.postDelayed({ startSend() }, 2500)
                 }
             }
@@ -70,10 +88,12 @@ class ReportRunner(
     }
 
     private fun loadChat() {
+        onProgress("Отчёт собран, открываю чат…")
         web?.loadUrl(settings.chatUrl())
     }
 
     private fun startSend() {
+        onProgress("Отправляю…")
         eval(ReportJs.vkBootstrap()) {
             eval(ReportJs.callFill(report)) { fillRes ->
                 if (fillRes == "nofield") {
@@ -110,6 +130,7 @@ class ReportRunner(
         CookieManager.getInstance().flush()
         web?.let {
             it.stopLoading()
+            (it.parent as? ViewGroup)?.removeView(it)
             it.destroy()
         }
         web = null

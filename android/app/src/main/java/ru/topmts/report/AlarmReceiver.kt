@@ -4,13 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** Срабатывает по расписанию: запускает отправку отчёта. */
+/** Срабатывает по расписанию: открывает экран отправки отчёта. */
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val settings = Settings(context)
-        if (settings.enabled) {
-            SendService.start(context)
-        }
-        // следующий будильник переставится после завершения отправки в SendService
+        if (!settings.enabled) return
+        val i = Intent(context, RunnerActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        context.startActivity(i)
     }
 }
