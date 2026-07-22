@@ -130,7 +130,8 @@ object ReportJs {
     return 'nofield';
   }
   function check(){var i=find(INPUT);if(!i)return 'nofield';return txt(i).trim()===''?'sent':'notsent';}
-  window.TOPMTS={fill:fill,click:click,check:check};
+  function has(){return !!find(INPUT);}
+  window.TOPMTS={fill:fill,click:click,check:check,has:has};
   return 'ready';
 })();
 """.trimIndent()
@@ -138,4 +139,5 @@ object ReportJs {
     fun callFill(text: String) = "window.TOPMTS && window.TOPMTS.fill(${q(text)});"
     fun callClick() = "window.TOPMTS && window.TOPMTS.click();"
     fun callCheck() = "window.TOPMTS && window.TOPMTS.check();"
+    fun callHas() = "(window.TOPMTS && window.TOPMTS.has()) ? 'true' : 'false';"
 }

@@ -58,15 +58,14 @@ class ReportRunner(
                 if (u.contains("agent_day.php")) {
                     onProgress("Собираю данные с портала…")
                     handler.postDelayed({ pollScrape() }, 1500)
-                } else if (u.contains("/im")) {
-                    onProgress("Открываю чат ВК…")
-                    handler.postDelayed({ startSend() }, 2500)
                 }
+                // страница ВК (мессенджер) — «живой» SPA, событие загрузки у
+                // него ненадёжно, поэтому этап ВК запускается опросом из loadChat()
             }
         }
 
         // общий тайм-аут на всю операцию
-        handler.postDelayed({ finish(false, "Тайм-аут: не уложились в 90 секунд") }, 90_000)
+        handler.postDelayed({ finish(false, "Тайм-аут: не уложились за 2 минуты") }, 120_000)
         wv.loadUrl(settings.portalUrl)
     }
 
@@ -90,22 +89,41 @@ class ReportRunner(
     private fun loadChat() {
         onProgress("Отчёт собран, открываю чат…")
         web?.loadUrl(settings.chatUrl())
+        // не ждём onPageFinished (у SPA ВК ненадёжно) — опрашиваем поле ввода
+        handler.postDelayed({ waitComposer(0) }, 3000)
+    }
+
+    // Периодически проверяем, появилось ли поле ввода чата, и как только
+    // оно есть — вставляем текст и отправляем. Работает независимо от того,
+    // сработало ли событие «страница загрузилась».
+    private fun waitComposer(attempt: Int) {
+        if (finished) return
+        eval(ReportJs.vkBootstrap()) {
+            eval(ReportJs.callHas()) { has ->
+                if (has == "true") {
+                    startSend()
+                } else if (attempt < 30) {
+                    if (attempt == 0) onProgress("Открываю чат ВК…")
+                    handler.postDelayed({ waitComposer(attempt + 1) }, 1500)
+                } else {
+                    finish(false, "Поле ввода ВК не найдено — войдите в ВК в приложении.")
+                }
+            }
+        }
     }
 
     private fun startSend() {
         onProgress("Отправляю…")
-        eval(ReportJs.vkBootstrap()) {
-            eval(ReportJs.callFill(report)) { fillRes ->
-                if (fillRes == "nofield") {
-                    finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
-                    return@eval
-                }
-                handler.postDelayed({
-                    eval(ReportJs.callClick()) {
-                        handler.postDelayed({ checkSent(1) }, 1500)
-                    }
-                }, 600)
+        eval(ReportJs.callFill(report)) { fillRes ->
+            if (fillRes == "nofield") {
+                finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
+                return@eval
             }
+            handler.postDelayed({
+                eval(ReportJs.callClick()) {
+                    handler.postDelayed({ checkSent(1) }, 1500)
+                }
+            }, 600)
         }
     }
 
