@@ -84,6 +84,8 @@ class MainActivity : Activity() {
         settings.days = days
         AlarmScheduler.schedule(this, settings)
         maybeAskExactAlarm()
+        maybeAskFullScreen()
+        maybeAskBatteryExemption()
     }
 
     private fun openLogin(url: String) {
@@ -120,6 +122,38 @@ class MainActivity : Activity() {
                             .setData(Uri.parse("package:$packageName"))
                     )
                 } catch (e: Exception) { /* некоторые прошивки не имеют экрана — игнор */ }
+            }
+        }
+    }
+
+    // Android 14+: разрешение на полноэкранные уведомления (чтобы окно
+    // отправки открывалось при погашенном экране)
+    private fun maybeAskFullScreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+            if (!nm.canUseFullScreenIntent()) {
+                try {
+                    startActivity(
+                        Intent(AndroidSettings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
+                            .setData(Uri.parse("package:$packageName"))
+                    )
+                } catch (e: Exception) { /* игнор */ }
+            }
+        }
+    }
+
+    // Просим исключить приложение из экономии батареи, иначе система
+    // «усыпит» будильник на многих прошивках
+    private fun maybeAskBatteryExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    startActivity(
+                        Intent(AndroidSettings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+                            .setData(Uri.parse("package:$packageName"))
+                    )
+                } catch (e: Exception) { /* игнор */ }
             }
         }
     }

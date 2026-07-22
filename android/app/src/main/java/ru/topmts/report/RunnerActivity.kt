@@ -1,6 +1,8 @@
 package ru.topmts.report
 
 import android.app.Activity
+import android.app.NotificationManager
+import android.content.Context
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -29,6 +31,9 @@ class RunnerActivity : Activity() {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
         }
+        // убрать пусковое уведомление будильника — окно уже открылось
+        (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .cancel(AlarmReceiver.NOTIF_LAUNCH)
 
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#0D1117"))
