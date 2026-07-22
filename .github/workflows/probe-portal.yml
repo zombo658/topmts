@@ -1,0 +1,38 @@
+name: Проверка доступности портала МТС
+
+# Проверяет, отвечает ли inventory.ural.mts.ru из облака GitHub (серверы за
+# границей). Паролей и секретов не требует — только сетевой доступ.
+# Запуск: вкладка Actions → этот workflow → Run workflow.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Где находится раннер
+        run: |
+          echo "IP и страна раннера:"
+          curl -sS -m 20 https://ipinfo.io/json || echo "(ipinfo недоступен)"
+
+      - name: DNS
+        run: |
+          echo "Резолвинг inventory.ural.mts.ru:"
+          getent hosts inventory.ural.mts.ru || echo "DNS не резолвится"
+
+      - name: Запрос к порталу
+        run: |
+          echo "== HTTPS GET /pc/agent_day.php =="
+          code=$(curl -sS -m 40 -o page.html -w "%{http_code}" -L \
+            -A "Mozilla/5.0" "https://inventory.ural.mts.ru/pc/agent_day.php" || echo "000")
+          echo "HTTP-код: $code"
+          echo "Размер ответа: $(wc -c < page.html 2>/dev/null || echo 0) байт"
+          echo "== Заголовок страницы =="
+          grep -o "<title>[^<]*</title>" page.html || echo "(тега title нет)"
+          echo "== Есть ли форма входа (поле пароля)? =="
+          grep -o -i "type=[\"']*password" page.html | head -1 || echo "(поля пароля не найдено)"
+          echo "== Первые 400 символов ответа =="
+          head -c 400 page.html || true
+          echo ""
+          echo "ИТОГ: если код 200/302 и пришла HTML-страница — портал из облака доступен."
