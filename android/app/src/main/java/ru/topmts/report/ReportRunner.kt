@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -119,12 +120,50 @@ class ReportRunner(
 
     private fun startSend() {
         onProgress("Отправляю…")
-        eval(ReportJs.callFill(report)) { fillRes ->
-            if (fillRes == "nofield") {
+        // 1) фокусируем поле ввода ВК (курсор в конец)
+        eval(ReportJs.callFocus()) { focus ->
+            if (focus != "ok") {
                 finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
                 return@eval
             }
-            handler.postDelayed({ attemptSend(0) }, 700)
+            // 2) «печатаем» отчёт как настоящая клавиатура (через IME WebView) —
+            //    так редактор ВК регистрирует ввод и РАЗБЛОКИРУЕТ кнопку отправки.
+            //    Синтетическая вставка этого не делает: текст виден, но кнопка заперта.
+            val typed = nativeCommitText(report)
+            handler.postDelayed({
+                eval(ReportJs.callCheck()) { st ->
+                    when (st) {
+                        // поле не пустое — текст реально напечатан, отправляем
+                        "notsent" -> attemptSend(0)
+                        // печать не прошла — откатываемся на синтетическую вставку
+                        else -> eval(ReportJs.callFill(report)) { fillRes ->
+                            if (fillRes == "nofield") {
+                                finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
+                            } else {
+                                handler.postDelayed({ attemptSend(0) }, 700)
+                            }
+                        }
+                    }
+                }
+            }, 600)
+        }
+    }
+
+    // «Печать» текста в WebView через InputConnection.commitText — тот же путь,
+    // что и при наборе с экранной клавиатуры (IME → редактор страницы). В отличие
+    // от синтетического paste/execCommand, редактор ВК считает это настоящим
+    // вводом и разблокирует отправку.
+    private fun nativeCommitText(text: String): Boolean {
+        val wv = web ?: return false
+        wv.requestFocus()
+        return try {
+            val ic = wv.onCreateInputConnection(EditorInfo()) ?: return false
+            ic.beginBatchEdit()
+            ic.commitText(text, 1)
+            ic.endBatchEdit()
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 
