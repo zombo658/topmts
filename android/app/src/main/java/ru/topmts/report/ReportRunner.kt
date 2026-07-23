@@ -32,6 +32,7 @@ class ReportRunner(
     private var report: String = ""
     private var finished = false
     private var scrapeTries = 0
+    private var btnInfo = "кнопка отправки не проверялась"
 
     fun start() {
         val wv = WebView(context)
@@ -145,7 +146,8 @@ class ReportRunner(
             }
             else -> finish(
                 false,
-                "Текст вставлен, но ВК не отправил его. Откройте чат и нажмите «отправить»."
+                "Текст вставлен, но ВК не отправил его ($btnInfo). " +
+                    "Проверьте: если вручную в этом чате тоже не шлётся — это блокировка ВК."
             )
         }
     }
@@ -163,9 +165,11 @@ class ReportRunner(
     private fun nativeTapSendButton(after: () -> Unit) {
         eval(ReportJs.callRect()) { json ->
             val wv = web
-            if (json.isBlank() || wv == null || wv.width == 0) { after(); return@eval }
+            if (json.isBlank()) { btnInfo = "кнопка отправки не найдена"; after(); return@eval }
+            if (wv == null || wv.width == 0) { after(); return@eval }
             try {
                 val o = JSONObject(json)
+                btnInfo = "кнопка найдена"
                 val iw = o.getDouble("iw")
                 val scale = if (iw > 0) wv.width / iw else 1.0
                 val x = (o.getDouble("x") * scale).toFloat()

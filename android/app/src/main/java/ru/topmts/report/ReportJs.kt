@@ -105,20 +105,38 @@ object ReportJs {
   function vis(el){return el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden';}
   function find(list){for(var i=0;i<list.length;i++){var e=[].slice.call(document.querySelectorAll(list[i])).filter(vis);if(e.length)return e[e.length-1];}return null;}
   function txt(el){return (el.value!==undefined?el.value:el.innerText)||'';}
+  function cur(input){return (input.value!==undefined?input.value:input.innerText)||'';}
+  function caretEnd(input){
+    if(input.value!==undefined)return;
+    var r=document.createRange();r.selectNodeContents(input);r.collapse(false);
+    var s=getSelection();s.removeAllRanges();s.addRange(r);
+  }
   function fill(text){
     var input=find(INPUT);
     if(!input)return 'nofield';
     input.focus();
+    var probe=text.slice(0,15);
+    // 1) синтетический paste — надёжнее всего регистрируется редактором ВК
+    try{
+      caretEnd(input);
+      var dt=new DataTransfer();dt.setData('text/plain',text);
+      input.dispatchEvent(new ClipboardEvent('paste',{clipboardData:dt,bubbles:true,cancelable:true}));
+    }catch(e){}
+    if(cur(input).indexOf(probe)>=0)return 'filled';
+    // 2) execCommand insertText
+    caretEnd(input);
+    document.execCommand('insertText',false,text);
+    if(cur(input).indexOf(probe)>=0){
+      input.dispatchEvent(new InputEvent('input',{bubbles:true,data:text,inputType:'insertText'}));
+      return 'filled';
+    }
+    // 3) прямое значение
     if(input.value!==undefined){
       var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input),'value');
       if(d&&d.set)d.set.call(input,text); else input.value=text;
-    }else{
-      var r=document.createRange();r.selectNodeContents(input);r.collapse(false);
-      var s=getSelection();s.removeAllRanges();s.addRange(r);
-      if(!document.execCommand('insertText',false,text))input.innerText=text;
-    }
+    }else{input.innerText=text;}
     input.dispatchEvent(new InputEvent('input',{bubbles:true,data:text,inputType:'insertText'}));
-    return 'filled';
+    return cur(input).indexOf(probe)>=0?'filled':'nofield';
   }
   function click(){
     var input=find(INPUT); var btn=find(SEND);

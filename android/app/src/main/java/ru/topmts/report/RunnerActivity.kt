@@ -49,19 +49,21 @@ class RunnerActivity : Activity() {
             )
         )
 
+        // узкая полоска статуса сверху — чат ВК под ней виден
         val status = TextView(this).apply {
-            textSize = 16f
+            textSize = 15f
             setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#CC0D1117"))
+            setBackgroundColor(Color.parseColor("#E6101820"))
             gravity = Gravity.CENTER
+            setPadding(24, 24, 24, 24)
             text = "Готовлю отчёт…"
         }
         root.addView(
             status,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = Gravity.TOP }
         )
 
         val settings = Settings(this)
@@ -87,8 +89,9 @@ class RunnerActivity : Activity() {
                 status.text = message
                 // переставляем будильник на следующий раз
                 AlarmScheduler.schedule(applicationContext, settings)
-                // закрываемся с небольшой задержкой, чтобы было видно результат
-                status.postDelayed({ if (!isFinishing) finish() }, 2500)
+                // при успехе закрываемся сами; при ошибке оставляем окно
+                // открытым — виден чат ВК, можно разобраться/сделать скриншот
+                if (ok) status.postDelayed({ if (!isFinishing) finish() }, 2500)
             }
         ).start()
     }
