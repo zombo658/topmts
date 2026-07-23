@@ -131,7 +131,15 @@ object ReportJs {
   }
   function check(){var i=find(INPUT);if(!i)return 'nofield';return txt(i).trim()===''?'sent':'notsent';}
   function has(){return !!find(INPUT);}
-  window.TOPMTS={fill:fill,click:click,check:check,has:has};
+  // координаты центра кнопки «отправить» (в CSS-пикселях) + ширина вьюпорта —
+  // для нативного тапа из Android
+  function rect(){var b=find(SEND);if(!b)return '';var r=b.getBoundingClientRect();
+    return JSON.stringify({x:r.left+r.width/2,y:r.top+r.height/2,iw:window.innerWidth});}
+  // поставить фокус в поле ввода и курсор в конец — перед нативным Enter
+  function focusInput(){var i=find(INPUT);if(!i)return false;i.focus();
+    if(i.value===undefined){var r=document.createRange();r.selectNodeContents(i);r.collapse(false);
+      var s=getSelection();s.removeAllRanges();s.addRange(r);}return true;}
+  window.TOPMTS={fill:fill,click:click,check:check,has:has,rect:rect,focusInput:focusInput};
   return 'ready';
 })();
 """.trimIndent()
@@ -140,4 +148,6 @@ object ReportJs {
     fun callClick() = "window.TOPMTS && window.TOPMTS.click();"
     fun callCheck() = "window.TOPMTS && window.TOPMTS.check();"
     fun callHas() = "(window.TOPMTS && window.TOPMTS.has()) ? 'true' : 'false';"
+    fun callRect() = "window.TOPMTS ? window.TOPMTS.rect() : '';"
+    fun callFocus() = "(window.TOPMTS && window.TOPMTS.focusInput()) ? 'ok' : 'no';"
 }

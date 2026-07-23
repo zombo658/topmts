@@ -3,10 +3,14 @@ package ru.topmts.report
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import org.json.JSONObject
 import org.json.JSONTokener
 
 /**
@@ -119,26 +123,71 @@ class ReportRunner(
                 finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
                 return@eval
             }
-            handler.postDelayed({
-                eval(ReportJs.callClick()) {
-                    handler.postDelayed({ checkSent(1) }, 1500)
-                }
-            }, 600)
+            handler.postDelayed({ attemptSend(0) }, 700)
         }
     }
 
-    private fun checkSent(attempt: Int) {
-        eval(ReportJs.callCheck()) { res ->
-            when {
-                res == "sent" -> finish(true, "Отчёт отправлен ✓")
-                attempt < 2 -> {
-                    eval(ReportJs.callClick()) {
-                        handler.postDelayed({ checkSent(attempt + 1) }, 1500)
-                    }
-                }
-                else -> finish(false, "Текст вставлен, но ВК не отправил — откройте чат и нажмите «отправить».")
+    // Последовательно пробуем всё более «настоящие» способы отправки,
+    // проверяя после каждого, очистилось ли поле:
+    //  0 — обычный клик по кнопке из JS (работает на части вёрсток)
+    //  1 — НАСТОЯЩИЙ тап пальцем по координатам кнопки (нативный MotionEvent)
+    //  2 — НАСТОЯЩЕЕ нажатие Enter (нативный KeyEvent в WebView)
+    private fun attemptSend(strategy: Int) {
+        if (finished) return
+        when (strategy) {
+            0 -> eval(ReportJs.callClick()) {
+                handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
             }
+            1 -> nativeTapSendButton { handler.postDelayed({ verifyOrEscalate(strategy) }, 1500) }
+            2 -> eval(ReportJs.callFocus()) {
+                nativeEnter()
+                handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
+            }
+            else -> finish(
+                false,
+                "Текст вставлен, но ВК не отправил его. Откройте чат и нажмите «отправить»."
+            )
         }
+    }
+
+    private fun verifyOrEscalate(strategy: Int) {
+        eval(ReportJs.callCheck()) { res ->
+            if (res == "sent") finish(true, "Отчёт отправлен ✓")
+            else attemptSend(strategy + 1)
+        }
+    }
+
+    // Настоящий тап по кнопке «отправить»: берём её координаты из страницы,
+    // переводим CSS-пиксели в пиксели WebView и шлём MotionEvent — для сайта
+    // это неотличимо от касания пальцем
+    private fun nativeTapSendButton(after: () -> Unit) {
+        eval(ReportJs.callRect()) { json ->
+            val wv = web
+            if (json.isBlank() || wv == null || wv.width == 0) { after(); return@eval }
+            try {
+                val o = JSONObject(json)
+                val iw = o.getDouble("iw")
+                val scale = if (iw > 0) wv.width / iw else 1.0
+                val x = (o.getDouble("x") * scale).toFloat()
+                val y = (o.getDouble("y") * scale).toFloat()
+                val t = SystemClock.uptimeMillis()
+                MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x, y, 0).also {
+                    wv.dispatchTouchEvent(it); it.recycle()
+                }
+                MotionEvent.obtain(t, t + 60, MotionEvent.ACTION_UP, x, y, 0).also {
+                    wv.dispatchTouchEvent(it); it.recycle()
+                }
+            } catch (e: Exception) { /* пойдём к следующей стратегии */ }
+            after()
+        }
+    }
+
+    // Настоящее нажатие Enter в WebView (поле уже сфокусировано через focusInput)
+    private fun nativeEnter() {
+        val wv = web ?: return
+        wv.requestFocus()
+        wv.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+        wv.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
     }
 
     private fun finish(ok: Boolean, message: String) {
