@@ -33,6 +33,7 @@ class ReportRunner(
     private var report: String = ""
     private var finished = false
     private var scrapeTries = 0
+    private var nativeTyped = false
     private var btnInfo = "кнопка отправки не проверялась"
 
     fun start() {
@@ -118,41 +119,69 @@ class ReportRunner(
         }
     }
 
+    // Этап отправки. Порядок:
+    //  1) синтетическая вставка (как в 1.3.1) — надёжно кладёт текст в поле;
+    //  2) ПРОВЕРКА, что текст реально в поле (иначе пустое поле нельзя слать
+    //     и уж точно нельзя считать успехом);
+    //  3) попытки отправки. Если не вышло — нативная «печать» как запасной путь.
     private fun startSend() {
-        onProgress("Отправляю…")
-        // 1) фокусируем поле ввода ВК (курсор в конец)
-        eval(ReportJs.callFocus()) { focus ->
-            if (focus != "ok") {
+        onProgress("Вставляю отчёт…")
+        eval(ReportJs.callFill(report)) { fillRes ->
+            if (fillRes == "nofield") {
                 finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
                 return@eval
             }
-            // 2) «печатаем» отчёт как настоящая клавиатура (через IME WebView) —
-            //    так редактор ВК регистрирует ввод и РАЗБЛОКИРУЕТ кнопку отправки.
-            //    Синтетическая вставка этого не делает: текст виден, но кнопка заперта.
-            val typed = nativeCommitText(report)
             handler.postDelayed({
                 eval(ReportJs.callCheck()) { st ->
-                    when (st) {
-                        // поле не пустое — текст реально напечатан, отправляем
-                        "notsent" -> attemptSend(0)
-                        // печать не прошла — откатываемся на синтетическую вставку
-                        else -> eval(ReportJs.callFill(report)) { fillRes ->
-                            if (fillRes == "nofield") {
-                                finish(false, "Поле ввода ВК не найдено. Нужно войти в ВК в приложении.")
-                            } else {
-                                handler.postDelayed({ attemptSend(0) }, 700)
-                            }
-                        }
+                    // notsent = в поле есть текст → можно отправлять
+                    if (st == "notsent") {
+                        onProgress("Отправляю…")
+                        attemptSend(0)
+                    } else {
+                        // текст не закрепился — пробуем нативную «печать»
+                        nativeTypePhase()
                     }
                 }
-            }, 600)
+            }, 500)
+        }
+    }
+
+    // Запасной ввод: чистим поле и «печатаем» отчёт через IME WebView —
+    // тот же путь, что и при наборе с клавиатуры. Иногда ВК регистрирует
+    // именно такой ввод и разблокирует отправку.
+    private fun nativeTypePhase() {
+        if (nativeTyped) {
+            finish(
+                false,
+                "Не удалось вставить отчёт в поле ВК. Откройте чат ВК в приложении, " +
+                    "проверьте, что вы вошли, и попробуйте ещё раз."
+            )
+            return
+        }
+        nativeTyped = true
+        onProgress("Печатаю отчёт…")
+        eval(ReportJs.callClear()) {
+            eval(ReportJs.callFocus()) {
+                nativeCommitText(report)
+                handler.postDelayed({
+                    eval(ReportJs.callCheck()) { st ->
+                        if (st == "notsent") {
+                            onProgress("Отправляю…")
+                            attemptSend(0)
+                        } else {
+                            finish(
+                                false,
+                                "ВК не принял вставку текста. Проверьте, что вы вошли в ВК в приложении."
+                            )
+                        }
+                    }
+                }, 600)
+            }
         }
     }
 
     // «Печать» текста в WebView через InputConnection.commitText — тот же путь,
-    // что и при наборе с экранной клавиатуры (IME → редактор страницы). В отличие
-    // от синтетического paste/execCommand, редактор ВК считает это настоящим
-    // вводом и разблокирует отправку.
+    // что и при наборе с экранной клавиатуры (IME → редактор страницы).
     private fun nativeCommitText(text: String): Boolean {
         val wv = web ?: return false
         wv.requestFocus()
@@ -183,7 +212,9 @@ class ReportRunner(
                 nativeEnter()
                 handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
             }
-            else -> finish(
+            // все обычные способы не сработали — пробуем нативную «печать»,
+            // она иногда разблокирует кнопку; если уже пробовали — сдаёмся честно
+            else -> if (!nativeTyped) nativeTypePhase() else finish(
                 false,
                 "Текст вставлен, но ВК не отправил его ($btnInfo). " +
                     "Проверьте: если вручную в этом чате тоже не шлётся — это блокировка ВК."

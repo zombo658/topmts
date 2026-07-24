@@ -149,6 +149,11 @@ object ReportJs {
   }
   function check(){var i=find(INPUT);if(!i)return 'nofield';return txt(i).trim()===''?'sent':'notsent';}
   function has(){return !!find(INPUT);}
+  function clear(){var i=find(INPUT);if(!i)return false;i.focus();
+    if(i.value!==undefined){var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(i),'value');
+      if(d&&d.set)d.set.call(i,''); else i.value='';}
+    else{i.innerText='';}
+    i.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));return true;}
   // координаты центра кнопки «отправить» (в CSS-пикселях) + ширина вьюпорта —
   // для нативного тапа из Android
   function rect(){var b=find(SEND);if(!b)return '';var r=b.getBoundingClientRect();
@@ -157,7 +162,7 @@ object ReportJs {
   function focusInput(){var i=find(INPUT);if(!i)return false;i.focus();
     if(i.value===undefined){var r=document.createRange();r.selectNodeContents(i);r.collapse(false);
       var s=getSelection();s.removeAllRanges();s.addRange(r);}return true;}
-  window.TOPMTS={fill:fill,click:click,check:check,has:has,rect:rect,focusInput:focusInput};
+  window.TOPMTS={fill:fill,click:click,check:check,has:has,rect:rect,focusInput:focusInput,clear:clear};
   return 'ready';
 })();
 """.trimIndent()
@@ -168,4 +173,5 @@ object ReportJs {
     fun callHas() = "(window.TOPMTS && window.TOPMTS.has()) ? 'true' : 'false';"
     fun callRect() = "window.TOPMTS ? window.TOPMTS.rect() : '';"
     fun callFocus() = "(window.TOPMTS && window.TOPMTS.focusInput()) ? 'ok' : 'no';"
+    fun callClear() = "(window.TOPMTS && window.TOPMTS.clear()) ? 'ok' : 'no';"
 }
