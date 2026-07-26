@@ -23,6 +23,8 @@ import java.util.Locale
  */
 class RunnerActivity : Activity() {
 
+    private var runner: ReportRunner? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -78,7 +80,7 @@ class RunnerActivity : Activity() {
             return
         }
 
-        ReportRunner(
+        runner = ReportRunner(
             context = this,
             settings = settings,
             container = webHost,
@@ -93,7 +95,16 @@ class RunnerActivity : Activity() {
                 // открытым — виден чат ВК, можно разобраться/сделать скриншот
                 if (ok) status.postDelayed({ if (!isFinishing) finish() }, 2500)
             }
-        ).start()
+        )
+        runner?.start()
+    }
+
+    override fun onDestroy() {
+        // при ошибке WebView остаётся жить, чтобы можно было отправить вручную —
+        // освобождаем его только при закрытии окна
+        runner?.release()
+        runner = null
+        super.onDestroy()
     }
 
     companion object {

@@ -104,6 +104,55 @@ object ReportJs {
     '.im-send-btn:not(.im-send-btn_locked)','[aria-label="Отправить"]','button[type="submit"]'];
   function vis(el){return el&&el.getClientRects().length&&getComputedStyle(el).visibility!=='hidden';}
   function find(list){for(var i=0;i<list.length;i++){var e=[].slice.call(document.querySelectorAll(list[i])).filter(vis);if(e.length)return e[e.length-1];}return null;}
+  function cls(el){var c=el.className;return (c&&c.baseVal!==undefined?c.baseVal:c)||'';}
+  // Кнопка «отправить»: ищем по подписи/классу среди кликабельных элементов и
+  // выбираем ту, что стоит на одной линии с полем ввода (вёрстка ВК меняется,
+  // поэтому жёсткие селекторы — только запасной вариант).
+  function sendBtn(){
+    var input=find(INPUT);
+    var nodes=[].slice.call(document.querySelectorAll(
+      'button,[role="button"],[aria-label],[title],[data-testid],[class*="send"],[class*="Send"]'));
+    var best=null,bestD=1e9;
+    var ir=input?input.getBoundingClientRect():null;
+    nodes.forEach(function(el){
+      if(!vis(el)||el.disabled)return;
+      var c=cls(el);
+      var lab=((el.getAttribute('aria-label')||'')+' '+(el.getAttribute('title')||'')+' '+
+               (el.getAttribute('data-testid')||'')+' '+c).toLowerCase();
+      if(!/send|отправ/.test(lab))return;
+      if(/locked|disabled|attach|voice|audio|emoji|sticker|graffiti/.test(lab))return;
+      var b=el.getBoundingClientRect();
+      if(b.width<12||b.height<12||b.width>260)return;
+      // ближе всего по вертикали к полю ввода и правее его начала
+      var d=ir?Math.abs((b.top+b.height/2)-(ir.top+ir.height/2)):b.top;
+      if(ir&&b.left<ir.left-40)d+=500;
+      if(d<bestD){bestD=d;best=el;}
+    });
+    return best||find(SEND);
+  }
+  // «Нажатие» кнопки максимально похоже на палец: касание → указатель → мышь → click
+  function realClick(el){
+    var b=el.getBoundingClientRect();
+    var cx=b.left+b.width/2, cy=b.top+b.height/2;
+    try{
+      var t=new Touch({identifier:1,target:el,clientX:cx,clientY:cy,pageX:cx,pageY:cy});
+      el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,cancelable:true,composed:true,
+        touches:[t],targetTouches:[t],changedTouches:[t]}));
+      el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,cancelable:true,composed:true,
+        touches:[],targetTouches:[],changedTouches:[t]}));
+    }catch(e){}
+    var P=window.PointerEvent||MouseEvent;
+    function fire(type,Ctor,extra){
+      var o={bubbles:true,cancelable:true,composed:true,clientX:cx,clientY:cy,button:0,buttons:1};
+      for(var k in extra)o[k]=extra[k];
+      try{el.dispatchEvent(new Ctor(type,o));}catch(e){}
+    }
+    var pt={pointerId:1,pointerType:'touch',isPrimary:true};
+    fire('pointerdown',P,pt); fire('mousedown',MouseEvent,{});
+    fire('pointerup',P,{pointerId:1,pointerType:'touch',isPrimary:true,buttons:0});
+    fire('mouseup',MouseEvent,{buttons:0}); fire('click',MouseEvent,{buttons:0});
+    try{el.click();}catch(e){}
+  }
   function txt(el){return (el.value!==undefined?el.value:el.innerText)||'';}
   function cur(input){return (input.value!==undefined?input.value:input.innerText)||'';}
   function caretEnd(input){
@@ -139,8 +188,8 @@ object ReportJs {
     return cur(input).indexOf(probe)>=0?'filled':'nofield';
   }
   function click(){
-    var input=find(INPUT); var btn=find(SEND);
-    if(btn){btn.click();return 'clicked';}
+    var input=find(INPUT); var btn=sendBtn();
+    if(btn){realClick(btn);return 'clicked';}
     if(input){var o={key:'Enter',code:'Enter',keyCode:13,which:13,bubbles:true,cancelable:true};
       input.dispatchEvent(new KeyboardEvent('keydown',o));
       input.dispatchEvent(new KeyboardEvent('keypress',o));
@@ -156,8 +205,9 @@ object ReportJs {
     i.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'deleteContentBackward'}));return true;}
   // координаты центра кнопки «отправить» (в CSS-пикселях) + ширина вьюпорта —
   // для нативного тапа из Android
-  function rect(){var b=find(SEND);if(!b)return '';var r=b.getBoundingClientRect();
-    return JSON.stringify({x:r.left+r.width/2,y:r.top+r.height/2,iw:window.innerWidth});}
+  function rect(){var b=sendBtn();if(!b)return '';var r=b.getBoundingClientRect();
+    var lab=(b.getAttribute('aria-label')||b.getAttribute('title')||b.getAttribute('data-testid')||cls(b)||'кнопка').slice(0,24);
+    return JSON.stringify({x:r.left+r.width/2,y:r.top+r.height/2,iw:window.innerWidth,label:lab});}
   // поставить фокус в поле ввода и курсор в конец — перед нативным Enter
   function focusInput(){var i=find(INPUT);if(!i)return false;i.focus();
     if(i.value===undefined){var r=document.createRange();r.selectNodeContents(i);r.collapse(false);

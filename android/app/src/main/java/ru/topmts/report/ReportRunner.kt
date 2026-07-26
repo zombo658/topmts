@@ -198,9 +198,10 @@ class ReportRunner(
 
     // Последовательно пробуем всё более «настоящие» способы отправки,
     // проверяя после каждого, очистилось ли поле:
-    //  0 — обычный клик по кнопке из JS (работает на части вёрсток)
+    //  0 — цепочка событий касания/клика по кнопке из JS
     //  1 — НАСТОЯЩИЙ тап пальцем по координатам кнопки (нативный MotionEvent)
-    //  2 — НАСТОЯЩЕЕ нажатие Enter (нативный KeyEvent в WebView)
+    //  2 — Enter через IME (клавиатурный путь)
+    //  3 — Enter нативным KeyEvent в WebView
     private fun attemptSend(strategy: Int) {
         if (finished) return
         when (strategy) {
@@ -208,7 +209,12 @@ class ReportRunner(
                 handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
             }
             1 -> nativeTapSendButton { handler.postDelayed({ verifyOrEscalate(strategy) }, 1500) }
+            // Enter клавиатурным путём (через IME) — так его видит редактор ВК
             2 -> eval(ReportJs.callFocus()) {
+                imeEnter()
+                handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
+            }
+            3 -> eval(ReportJs.callFocus()) {
                 nativeEnter()
                 handler.postDelayed({ verifyOrEscalate(strategy) }, 1500)
             }
@@ -216,8 +222,8 @@ class ReportRunner(
             // она иногда разблокирует кнопку; если уже пробовали — сдаёмся честно
             else -> if (!nativeTyped) nativeTypePhase() else finish(
                 false,
-                "Текст вставлен, но ВК не отправил его ($btnInfo). " +
-                    "Проверьте: если вручную в этом чате тоже не шлётся — это блокировка ВК."
+                "Текст вставлен, но нажать отправку не удалось ($btnInfo). " +
+                    "Нажмите кнопку отправки в чате ниже вручную."
             )
         }
     }
@@ -239,21 +245,40 @@ class ReportRunner(
             if (wv == null || wv.width == 0) { after(); return@eval }
             try {
                 val o = JSONObject(json)
-                btnInfo = "кнопка найдена"
+                btnInfo = "кнопка: " + o.optString("label", "найдена")
                 val iw = o.getDouble("iw")
                 val scale = if (iw > 0) wv.width / iw else 1.0
                 val x = (o.getDouble("x") * scale).toFloat()
                 val y = (o.getDouble("y") * scale).toFloat()
-                val t = SystemClock.uptimeMillis()
-                MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x, y, 0).also {
+                val down = SystemClock.uptimeMillis()
+                MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, x, y, 0).also {
                     wv.dispatchTouchEvent(it); it.recycle()
                 }
-                MotionEvent.obtain(t, t + 60, MotionEvent.ACTION_UP, x, y, 0).also {
-                    wv.dispatchTouchEvent(it); it.recycle()
-                }
+                // палец задерживается на кнопке — мгновенный тап часть вёрсток
+                // не считает нажатием
+                handler.postDelayed({
+                    val up = SystemClock.uptimeMillis()
+                    MotionEvent.obtain(down, up, MotionEvent.ACTION_UP, x, y, 0).also {
+                        wv.dispatchTouchEvent(it); it.recycle()
+                    }
+                    after()
+                }, 90)
+                return@eval
             } catch (e: Exception) { /* пойдём к следующей стратегии */ }
             after()
         }
+    }
+
+    // Enter тем же путём, что и с экранной клавиатуры (через InputConnection).
+    // Редактор ВК отправляет по Enter, но только если видит «клавиатурное» нажатие.
+    private fun imeEnter() {
+        val wv = web ?: return
+        wv.requestFocus()
+        try {
+            val ic = wv.onCreateInputConnection(EditorInfo()) ?: return
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
+        } catch (e: Exception) { /* пойдём к следующей стратегии */ }
     }
 
     // Настоящее нажатие Enter в WebView (поле уже сфокусировано через focusInput)
@@ -269,13 +294,29 @@ class ReportRunner(
         finished = true
         handler.removeCallbacksAndMessages(null)
         CookieManager.getInstance().flush()
+        // При успехе окно закрывается — WebView можно убрать.
+        // При ошибке ОСТАВЛЯЕМ страницу на экране: отчёт уже в поле ввода,
+        // и его можно отправить вручную (а также видно, на чём споткнулись).
+        if (ok) {
+            web?.let {
+                it.stopLoading()
+                (it.parent as? ViewGroup)?.removeView(it)
+                it.destroy()
+            }
+            web = null
+        }
+        onDone(ok, message)
+    }
+
+    /** Убрать WebView окончательно (вызывается при закрытии окна). */
+    fun release() {
+        handler.removeCallbacksAndMessages(null)
         web?.let {
             it.stopLoading()
             (it.parent as? ViewGroup)?.removeView(it)
             it.destroy()
         }
         web = null
-        onDone(ok, message)
     }
 
     private fun unquote(raw: String?): String {
