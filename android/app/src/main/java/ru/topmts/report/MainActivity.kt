@@ -73,16 +73,67 @@ class MainActivity : Activity() {
             startActivity(Intent(this, RunnerActivity::class.java))
         }
 
-        // статус живо реагирует на изменения расписания
-        enabled.setOnCheckedChangeListener { _, _ -> showStatus() }
-        dayBoxes.forEach { it.setOnCheckedChangeListener { _, _ -> showStatus() } }
-        time.setOnTimeChangedListener { _, _, _ -> showStatus() }
+        tap(findViewById(R.id.testNotify)) { testNotification() }
+
+        // расписание сохраняется сразу — без этого напоминание не ставилось,
+        // если пользователь менял настройки и не нажимал «Сохранить»
+        enabled.setOnCheckedChangeListener { _, _ -> saveSchedule() }
+        dayBoxes.forEach { it.setOnCheckedChangeListener { _, _ -> saveSchedule() } }
+        time.setOnTimeChangedListener { _, _, _ -> saveSchedule() }
 
         animateIn()
         requestRuntimePermissions()
     }
 
     private fun host() = vkHost.text.toString().trim().ifEmpty { "vk.ru" }
+
+    /** Сохранить только расписание и сразу переставить будильник. */
+    private fun saveSchedule() {
+        settings.enabled = enabled.isChecked
+        settings.hour = getHour()
+        settings.minute = getMinute()
+        val days = mutableSetOf<Int>()
+        for (i in dayBoxes.indices) if (dayBoxes[i].isChecked) days.add(i + 1)
+        settings.days = days
+        if (settings.peer.isBlank()) settings.peer = peer.text.toString().trim()
+        AlarmScheduler.schedule(this, settings)
+        showStatus()
+    }
+
+    /** Проверка: уведомление придёт через 10 секунд — не нужно ждать вечера. */
+    private fun testNotification() {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        if (!nm.areNotificationsEnabled()) {
+            toast("Уведомления запрещены — включите их в настройках приложения")
+            openNotificationSettings()
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+            return
+        }
+        maybeAskExactAlarm()
+        AlarmScheduler.scheduleTest(this, 10)
+        toast("Проверочное уведомление придёт через 10 секунд")
+    }
+
+    private fun openNotificationSettings() {
+        try {
+            startActivity(
+                Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, packageName)
+            )
+        } catch (e: Exception) {
+            try {
+                startActivity(
+                    Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(Uri.parse("package:$packageName"))
+                )
+            } catch (e2: Exception) { /* игнор */ }
+        }
+    }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
@@ -95,8 +146,17 @@ class MainActivity : Activity() {
                 peer.alpha = 0.3f
                 peer.animate().alpha(1f).setDuration(500).start()
                 toast("Чат выбран: $id")
+                // чат выбран — расписание теперь можно поставить
+                AlarmScheduler.schedule(this, settings)
+                showStatus()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // вернулись из системных настроек — статус мог измениться
+        if (::status.isInitialized) showStatus(animated = false)
     }
 
     // ---- оформление ----
@@ -129,25 +189,50 @@ class MainActivity : Activity() {
         }
     }
 
-    /** Строка под заголовком: когда придёт напоминание. */
+    /** Строка под заголовком: когда придёт напоминание и что мешает. */
     private fun showStatus(animated: Boolean = true) {
-        val text = if (!enabled.isChecked) {
-            "Напоминание выключено"
-        } else {
-            val days = dayBoxes.indices.filter { dayBoxes[it].isChecked }
-                .map { DAY_NAMES[it] }
-            val when_ = String.format("%02d:%02d", getHour(), getMinute())
-            when {
-                days.isEmpty() -> "Дни не выбраны — напоминание не придёт"
-                days.size == 7 -> "Напоминание каждый день в $when_"
-                else -> "Напоминание в $when_ · " + days.joinToString(" ")
-            }
-        }
+        val text = buildStatus()
         if (!animated) { status.text = text; return }
         status.animate().alpha(0f).setDuration(110).withEndAction {
             status.text = text
             status.animate().alpha(1f).setDuration(200).start()
         }.start()
+    }
+
+    private fun buildStatus(): String {
+        val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+        if (!nm.areNotificationsEnabled()) return "Уведомления запрещены — напоминание не придёт"
+        if (!enabled.isChecked) return "Напоминание выключено"
+        if (dayBoxes.none { it.isChecked }) return "Дни не выбраны — напоминание не придёт"
+        if (settings.peer.isBlank() && peer.text.toString().isBlank()) {
+            return "Чат не выбран — напоминание не придёт"
+        }
+        val next = AlarmScheduler.nextRun(settings)
+            ?: return String.format("Напоминание в %02d:%02d", getHour(), getMinute())
+        return "Напоминание: " + humanTime(next)
+    }
+
+    /** «сегодня в 22:00», «завтра в 22:00», «в Пн, 22:00». */
+    private fun humanTime(at: Long): String {
+        val c = java.util.Calendar.getInstance().apply { timeInMillis = at }
+        val now = java.util.Calendar.getInstance()
+        val time = String.format(
+            "%02d:%02d",
+            c.get(java.util.Calendar.HOUR_OF_DAY),
+            c.get(java.util.Calendar.MINUTE)
+        )
+        val days = ((at - now.timeInMillis) / 86_400_000L).toInt()
+        val sameDay = c.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR) &&
+            c.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR)
+        return when {
+            sameDay -> "сегодня в $time"
+            days < 1 -> "завтра в $time"
+            else -> {
+                val iso = c.get(java.util.Calendar.DAY_OF_WEEK)
+                    .let { if (it == java.util.Calendar.SUNDAY) 7 else it - 1 }
+                "${DAY_NAMES[iso - 1]}, $time"
+            }
+        }
     }
 
     private fun load() {

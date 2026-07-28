@@ -22,13 +22,16 @@ class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         val settings = Settings(context)
-        if (!settings.enabled) return
+        val test = intent?.getBooleanExtra(EXTRA_TEST, false) == true
 
-        // если сегодня уже отправляли — не напоминаем
-        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        if (settings.lastSentDate == today) {
-            AlarmScheduler.schedule(context, settings)
-            return
+        if (!test) {
+            if (!settings.enabled) return
+            // если сегодня уже отправляли — не напоминаем
+            val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+            if (settings.lastSentDate == today) {
+                AlarmScheduler.schedule(context, settings)
+                return
+            }
         }
 
         val activityIntent = Intent(context, RunnerActivity::class.java)
@@ -52,11 +55,15 @@ class AlarmReceiver : BroadcastReceiver() {
             Notification.Builder(context, CHANNEL) else Notification.Builder(context)
         val notif = builder
             .setSmallIcon(android.R.drawable.ic_menu_upload)
-            .setContentTitle("Пора отправить отчёт")
+            .setContentTitle(if (test) "Проверка: напоминание работает" else "Пора отправить отчёт")
             .setContentText("Нажмите, чтобы собрать и отправить в ВК")
             .setStyle(
                 Notification.BigTextStyle().bigText(
-                    "Нажмите — приложение соберёт отчёт с портала МТС и отправит его в чат ВК."
+                    if (test)
+                        "Так будет выглядеть напоминание в назначенное время. " +
+                            "Нажатие открывает сбор и отправку отчёта."
+                    else
+                        "Нажмите — приложение соберёт отчёт с портала МТС и отправит его в чат ВК."
                 )
             )
             .setCategory(Notification.CATEGORY_REMINDER)
@@ -70,11 +77,12 @@ class AlarmReceiver : BroadcastReceiver() {
         nm.notify(NOTIF_LAUNCH, notif)
 
         // переставляем будильник на следующий раз
-        AlarmScheduler.schedule(context, settings)
+        if (!test) AlarmScheduler.schedule(context, settings)
     }
 
     companion object {
         private const val CHANNEL = "report_reminder"
         const val NOTIF_LAUNCH = 10
+        const val EXTRA_TEST = "test"
     }
 }
