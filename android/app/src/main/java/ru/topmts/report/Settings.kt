@@ -8,7 +8,7 @@ class Settings(context: Context) {
     private val prefs = context.getSharedPreferences("topmts", Context.MODE_PRIVATE)
 
     var vkHost: String
-        get() = prefs.getString("vkHost", "vk.ru") ?: "vk.ru"
+        get() = prefs.getString("vkHost", "vk.com") ?: "vk.com"
         set(v) = prefs.edit().putString("vkHost", v).apply()
 
     var peer: String

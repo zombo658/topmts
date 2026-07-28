@@ -85,7 +85,7 @@ class MainActivity : Activity() {
         requestRuntimePermissions()
     }
 
-    private fun host() = vkHost.text.toString().trim().ifEmpty { "vk.ru" }
+    private fun host() = vkHost.text.toString().trim().ifEmpty { "vk.com" }
 
     /** Сохранить только расписание и сразу переставить будильник. */
     private fun saveSchedule() {
@@ -249,7 +249,7 @@ class MainActivity : Activity() {
     private fun save() {
         settings.enabled = enabled.isChecked
         settings.peer = peer.text.toString().trim()
-        settings.vkHost = vkHost.text.toString().trim().ifEmpty { "vk.ru" }
+        settings.vkHost = vkHost.text.toString().trim().ifEmpty { "vk.com" }
         settings.calls = calls.text.toString().trim().ifEmpty { "0" }
         settings.template = template.text.toString().ifEmpty { Settings.DEFAULT_TEMPLATE }
         settings.hour = getHour(); settings.minute = getMinute()

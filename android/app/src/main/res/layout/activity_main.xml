@@ -74,11 +74,11 @@
                 style="@style/BtnSecondary"
                 android:text="Выбрать чат из списка" />
 
-            <TextView style="@style/Label" android:text="Домен ВК (vk.ru или vk.com)" />
+            <TextView style="@style/Label" android:text="Домен ВК (vk.com или vk.ru)" />
             <EditText
                 android:id="@+id/vkHost"
                 style="@style/Input"
-                android:hint="vk.ru"
+                android:hint="vk.com"
                 android:inputType="text" />
 
             <TextView style="@style/Label" android:text="Количество звонков за сегодня" />

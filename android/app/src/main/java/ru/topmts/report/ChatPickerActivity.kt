@@ -39,7 +39,7 @@ class ChatPickerActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val host = intent.getStringExtra(EXTRA_HOST)?.trim().orEmpty().ifEmpty { "vk.ru" }
+        val host = intent.getStringExtra(EXTRA_HOST)?.trim().orEmpty().ifEmpty { "vk.com" }
 
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#0D1117"))
