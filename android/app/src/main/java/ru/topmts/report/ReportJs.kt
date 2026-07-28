@@ -68,7 +68,21 @@ object ReportJs {
       if(/\d${'$'}/.test(m[1])&&/^\d{2}(:\d{2})?${'$'}/.test(m[2]))return;
       add(m[1],m[2]);
     });
-    for(var k in fields){ if(/тип\s+.*дня/i.test(k)){ fields['тип дня']=fields[k].toLowerCase(); break; } }
+    // Тип дня: на портале в этой графе стоит либо интервал времени
+    // («с 09:00 по 18:00») — это РАБОЧИЙ день, либо прямо слово «выходной».
+    function dayType(v){
+      var s=' '+String(v||'').toLowerCase()+' ';
+      if(/выходн|отгул|отпуск|больничн/.test(s)) return 'выходной';
+      if(/\d{1,2}\s*[:.]\s*\d{2}/.test(s)) return 'рабочий';
+      if(/\sс\s*\d{1,2}[\s\S]*\sпо\s*\d{1,2}/.test(s)) return 'рабочий';
+      if(/\d{1,2}\s*[-–—]\s*\d{1,2}/.test(s)) return 'рабочий';
+      if(/рабоч/.test(s)) return 'рабочий';
+      return String(v||'').toLowerCase();
+    }
+    var dayKey=null;
+    for(var k in fields){ if(/тип\s*.*дня/i.test(k)){ dayKey=k; break; } }
+    if(dayKey===null) for(var k2 in fields){ if(/график|режим\s*работы/i.test(k2)){ dayKey=k2; break; } }
+    if(dayKey!==null) fields['тип дня']=dayType(fields[dayKey]);
 
     if(!Object.keys(fields).length) return '';
 

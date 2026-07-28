@@ -8,18 +8,28 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * Срабатывает по расписанию. Чтобы отправка работала даже при погашенном
- * экране, запуск идёт через полноэкранное уведомление (как у будильника):
- * система сама будит экран и открывает окно отправки поверх блокировки.
- * Прямой startActivity оставлен как запасной путь для старых версий Android.
+ * Срабатывает по расписанию и показывает НАПОМИНАНИЕ.
+ * Сама отправка не запускается в фоне: Android блокирует фоновый старт окон,
+ * а без окна WebView не работает. Поэтому по времени приходит уведомление —
+ * одно нажатие по нему открывает отправку.
  */
 class AlarmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         val settings = Settings(context)
         if (!settings.enabled) return
+
+        // если сегодня уже отправляли — не напоминаем
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+        if (settings.lastSentDate == today) {
+            AlarmScheduler.schedule(context, settings)
+            return
+        }
 
         val activityIntent = Intent(context, RunnerActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -33,8 +43,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val ch = NotificationChannel(
-                CHANNEL, "Запуск отправки", NotificationManager.IMPORTANCE_HIGH
-            )
+                CHANNEL, "Напоминание об отчёте", NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = "Напоминает отправить отчёт в назначенное время" }
             nm.createNotificationChannel(ch)
         }
 
@@ -42,12 +52,16 @@ class AlarmReceiver : BroadcastReceiver() {
             Notification.Builder(context, CHANNEL) else Notification.Builder(context)
         val notif = builder
             .setSmallIcon(android.R.drawable.ic_menu_upload)
-            .setContentTitle("Отправка отчёта в ВК")
-            .setContentText("Открываю… нажмите, если не открылось само")
-            .setCategory(Notification.CATEGORY_ALARM)
+            .setContentTitle("Пора отправить отчёт")
+            .setContentText("Нажмите, чтобы собрать и отправить в ВК")
+            .setStyle(
+                Notification.BigTextStyle().bigText(
+                    "Нажмите — приложение соберёт отчёт с портала МТС и отправит его в чат ВК."
+                )
+            )
+            .setCategory(Notification.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(pi)
-            .setFullScreenIntent(pi, true)
             .apply {
                 @Suppress("DEPRECATION")
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) setPriority(Notification.PRIORITY_HIGH)
@@ -55,18 +69,12 @@ class AlarmReceiver : BroadcastReceiver() {
             .build()
         nm.notify(NOTIF_LAUNCH, notif)
 
-        // запасной прямой запуск (сработает на старых Android и когда приложение
-        // недавно было на переднем плане)
-        try {
-            context.startActivity(activityIntent)
-        } catch (e: Exception) {
-            // на Android 10+ фоновый старт может быть запрещён — тогда сработает
-            // полноэкранное уведомление выше
-        }
+        // переставляем будильник на следующий раз
+        AlarmScheduler.schedule(context, settings)
     }
 
     companion object {
-        private const val CHANNEL = "report_launch"
+        private const val CHANNEL = "report_reminder"
         const val NOTIF_LAUNCH = 10
     }
 }

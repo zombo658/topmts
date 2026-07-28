@@ -72,9 +72,10 @@ class RunnerActivity : Activity() {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val fromAlarm = intent.getBooleanExtra(EXTRA_FROM_ALARM, false)
 
-        // авто-запуск по расписанию не отправляет повторно в тот же день —
+        // запуск из напоминания не отправляет повторно в тот же день —
         // защита от дублей и анти-флуда ВК
         if (fromAlarm && settings.lastSentDate == today) {
+            Toast.makeText(this, "Отчёт за сегодня уже отправлен", Toast.LENGTH_LONG).show()
             AlarmScheduler.schedule(applicationContext, settings)
             finish()
             return
