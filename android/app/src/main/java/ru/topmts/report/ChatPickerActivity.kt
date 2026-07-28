@@ -21,11 +21,12 @@ import org.json.JSONArray
 import org.json.JSONTokener
 
 /**
- * Выбор беседы. Работает двумя путями, чтобы не зависеть от вёрстки ВК:
- *  1) кнопка «Список бесед» — собирает диалоги со страницы и показывает
- *     их обычным списком: выбрал → номер подставился;
- *  2) откройте беседу в ВК и нажмите «Взять открытую» (или номер поймается
- *     из адреса сам, если ВК его туда пишет).
+ * Выбор беседы.
+ *
+ * Вёрстка мессенджера ВК постоянно меняется, а номер беседы в адрес он не
+ * пишет — поэтому номер берётся из сетевых запросов самого ВК: страница
+ * запрашивает список бесед и историю сообщений, а в этих запросах номер
+ * (peer_id) есть всегда. Открыли беседу — номер поймался.
  */
 class ChatPickerActivity : Activity() {
 
@@ -33,6 +34,8 @@ class ChatPickerActivity : Activity() {
     private lateinit var hint: TextView
     private val handler = Handler(Looper.getMainLooper())
     private var done = false
+    /** Беседа, открытая на момент запуска: её не считаем выбором пользователя. */
+    private var baseline: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +50,15 @@ class ChatPickerActivity : Activity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
-        web.webViewClient = WebViewClient()
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                inject()
+            }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                inject()
+            }
+        }
         root.addView(
             web,
             FrameLayout.LayoutParams(
@@ -57,7 +68,7 @@ class ChatPickerActivity : Activity() {
         )
 
         hint = TextView(this).apply {
-            text = "Откройте беседу или нажмите «Список бесед»"
+            text = "Откройте нужную беседу — её номер определится сам"
             setTextColor(Color.WHITE)
             setBackgroundColor(Color.parseColor("#F02787F5"))
             gravity = Gravity.CENTER
@@ -72,7 +83,6 @@ class ChatPickerActivity : Activity() {
             ).apply { gravity = Gravity.TOP }
         )
 
-        // нижняя панель с кнопками — не зависит от того, что делает ВК с адресом
         val bar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setBackgroundColor(Color.parseColor("#F0161B22"))
@@ -95,7 +105,15 @@ class ChatPickerActivity : Activity() {
         )
 
         web.loadUrl("https://$host/im")
-        handler.postDelayed({ poll() }, 2000)
+        // подстраховка: перехватчик ставим несколько раз, пока грузится страница
+        listOf(300L, 900L, 1800L, 3000L).forEach { handler.postDelayed({ inject() }, it) }
+        // всё, что ВК открыл сам при запуске, выбором не считаем
+        handler.postDelayed({ readCurrent { baseline = it.ifEmpty { "-" } } }, 4000)
+        handler.postDelayed({ poll() }, 4500)
+    }
+
+    private fun inject() {
+        if (!done) web.evaluateJavascript(HOOK, null)
     }
 
     private fun button(text: String, action: () -> Unit) = Button(this).apply {
@@ -107,24 +125,34 @@ class ChatPickerActivity : Activity() {
         setOnClickListener { action() }
     }
 
-    /** Если ВК всё же пишет беседу в адрес — подхватываем автоматически. */
+    /** Как только пользователь откроет беседу — её номер придёт сюда. */
     private fun poll() {
         if (done || isFinishing) return
-        web.evaluateJavascript("location.href") { raw ->
-            val id = extractPeer(unquote(raw))
-            if (id != null) pick(id) else handler.postDelayed({ poll() }, 500)
+        readCurrent { id ->
+            if (id.isNotEmpty() && baseline != null && id != baseline) {
+                pick(id)
+            } else {
+                // видно, что механизм работает, даже если беседа была открыта заранее
+                if (id.isNotEmpty()) {
+                    hint.text = "Сейчас открыта: ${chatLabel(id)} — нажмите «Взять открытую»"
+                }
+                handler.postDelayed({ poll() }, 500)
+            }
         }
     }
 
-    /** Собрать беседы со страницы и показать списком. */
+    /** Номер открытой беседы: из перехваченных запросов, затем из адреса. */
+    private fun readCurrent(cb: (String) -> Unit) {
+        web.evaluateJavascript(JS_CURRENT) { raw -> cb(unquote(raw).trim()) }
+    }
+
     private fun showChatList() {
         web.evaluateJavascript(JS_LIST) { raw ->
-            val json = unquote(raw)
-            val items = parseList(json)
+            val items = parseList(unquote(raw))
             if (items.isEmpty()) {
                 Toast.makeText(
                     this,
-                    "Список пуст — прокрутите диалоги и повторите, либо откройте беседу и нажмите «Взять открытую»",
+                    "Список пока пуст. Подождите, пока загрузятся диалоги, прокрутите их — и нажмите ещё раз.",
                     Toast.LENGTH_LONG
                 ).show()
                 return@evaluateJavascript
@@ -138,16 +166,14 @@ class ChatPickerActivity : Activity() {
         }
     }
 
-    /** Взять беседу, открытую сейчас на экране: из адреса или из разметки. */
     private fun takeCurrent() {
-        web.evaluateJavascript(JS_CURRENT) { raw ->
-            val id = unquote(raw).trim()
-            if (id.isNotEmpty() && id != "null") {
+        readCurrent { id ->
+            if (id.isNotEmpty()) {
                 pick(id)
             } else {
                 Toast.makeText(
                     this,
-                    "Не удалось определить беседу. Откройте её и повторите, либо впишите номер вручную.",
+                    "Пока не удалось определить беседу. Откройте её (чтобы загрузились сообщения) и нажмите снова.",
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -181,11 +207,21 @@ class ChatPickerActivity : Activity() {
             (0 until arr.length()).mapNotNull { i ->
                 val o = arr.optJSONObject(i) ?: return@mapNotNull null
                 val id = o.optString("id").trim()
-                if (id.isEmpty()) null
-                else id to o.optString("name").ifBlank { id }
+                if (id.isEmpty()) return@mapNotNull null
+                val name = o.optString("name").trim()
+                id to if (name.isEmpty()) chatLabel(id) else name
             }
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    /** Человекочитаемая подпись, если названия беседы нет. */
+    private fun chatLabel(id: String): String {
+        val n = id.toLongOrNull()
+        return when {
+            n != null && n >= 2_000_000_000L -> "Беседа c${n - 2_000_000_000L}"
+            else -> "Диалог $id"
         }
     }
 
@@ -203,58 +239,113 @@ class ChatPickerActivity : Activity() {
         const val EXTRA_HOST = "host"
         const val EXTRA_PEER = "peer"
 
-        /** Номер беседы из адреса: ?sel=c66, ?sel=2000000066, /im/convo/…, ?peer=… */
-        fun extractPeer(url: String): String? {
-            Regex("[?&#]sel=(c?-?\\d+)").find(url)?.let { return it.groupValues[1] }
-            Regex("[?&#]peer=(c?-?\\d+)").find(url)?.let { return it.groupValues[1] }
-            Regex("/im/convo/(-?\\d+)").find(url)?.let { return it.groupValues[1] }
-            return null
-        }
+        /**
+         * Перехватчик запросов ВК. Из ответов со списком бесед берёт их
+         * номера и названия, из запросов истории сообщений — номер той
+         * беседы, которую пользователь открыл.
+         */
+        private const val HOOK = """
+(function(){
+  if(window.__TP) return 'dup';
+  var TP={last:'',convos:[],seen:{}};
+  window.__TP=TP;
+  function addConvo(id,name){
+    id=String(id||'');
+    if(!id||id==='0'||TP.seen[id])return;
+    TP.seen[id]=1;
+    TP.convos.push({id:id,name:String(name||'')});
+  }
+  function walk(o,d){
+    if(!o||typeof o!=='object'||d>6)return;
+    try{
+      if(o.peer&&o.peer.id){
+        var nm='';
+        if(o.chat_settings&&o.chat_settings.title)nm=o.chat_settings.title;
+        addConvo(o.peer.id,nm);
+      }
+    }catch(e){}
+    for(var k in o){
+      try{ var v=o[k]; if(v&&typeof v==='object') walk(v,d+1); }catch(e){}
+    }
+  }
+  function grabPeer(s){
+    if(!s)return;
+    var m=String(s).match(/peer_?id["'=:\s]*(-?\d+)/i);
+    if(m&&m[1]&&m[1]!=='0') TP.last=m[1];
+  }
+  function handle(url,body,resp){
+    var u=String(url||''), b=String(body||'');
+    if(/history/i.test(u+' '+b)){ grabPeer(u); grabPeer(b); }
+    if(resp&&resp.length<4000000&&/conversation|"peer"/i.test(resp)){
+      try{ walk(JSON.parse(resp),0); }catch(e){}
+    }
+  }
+  var O=XMLHttpRequest.prototype.open, S=XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open=function(m,u){ this.__tpUrl=u; return O.apply(this,arguments); };
+  XMLHttpRequest.prototype.send=function(b){
+    var self=this;
+    try{
+      self.addEventListener('load',function(){
+        var t=''; try{ t=self.responseText||''; }catch(e){}
+        handle(self.__tpUrl,b,t);
+      });
+    }catch(e){}
+    return S.apply(this,arguments);
+  };
+  var F=window.fetch;
+  if(F){
+    window.fetch=function(i,init){
+      var u=(typeof i==='string')?i:((i&&i.url)||'');
+      var b=(init&&typeof init.body==='string')?init.body:'';
+      var p=F.apply(this,arguments);
+      try{ p.then(function(r){
+        try{ r.clone().text().then(function(t){ handle(u,b,t); }); }catch(e){}
+        return r;
+      }); }catch(e){}
+      return p;
+    };
+  }
+  return 'ok';
+})();
+"""
 
-        /** Собирает беседы из ссылок и data-атрибутов списка диалогов. */
+        /** Номер открытой беседы: перехваченный, иначе из адреса. */
+        private const val JS_CURRENT = """
+(function(){
+  if(window.__TP && window.__TP.last) return String(window.__TP.last);
+  var h=location.href;
+  var m=h.match(/[?&#]sel=(c?-?\d+)/)||h.match(/[?&#]peer=(c?-?\d+)/)||h.match(/\/im\/convo\/(-?\d+)/);
+  return m?m[1]:'';
+})();
+"""
+
+        /** Список бесед: перехваченный из ответов ВК плюс ссылки на странице. */
         private const val JS_LIST = """
 (function(){
   var out=[],seen={};
   function add(id,name){
-    if(!id||seen[id])return; seen[id]=1;
-    out.push({id:id,name:(name||'').replace(/\s+/g,' ').trim().slice(0,60)||id});
+    id=String(id||'');
+    if(!id||id==='0'||seen[id])return; seen[id]=1;
+    out.push({id:id,name:String(name||'').replace(/\s+/g,' ').trim().slice(0,60)});
   }
-  function fromHref(h){
-    var m=h.match(/sel=(c?-?\d+)/)||h.match(/peer=(c?-?\d+)/)||h.match(/\/im\/convo\/(-?\d+)/);
-    return m?m[1]:null;
+  if(window.__TP){
+    for(var i=0;i<window.__TP.convos.length;i++){
+      add(window.__TP.convos[i].id, window.__TP.convos[i].name);
+    }
   }
   var links=document.querySelectorAll('a[href]');
-  for(var i=0;i<links.length;i++){
-    var id=fromHref(links[i].getAttribute('href')||'');
-    if(id)add(id,links[i].innerText);
+  for(var j=0;j<links.length;j++){
+    var h=links[j].getAttribute('href')||'';
+    var m=h.match(/sel=(c?-?\d+)/)||h.match(/peer=(c?-?\d+)/)||h.match(/\/im\/convo\/(-?\d+)/);
+    if(m) add(m[1], links[j].innerText);
   }
-  var nodes=document.querySelectorAll('[data-peer],[data-peer-id],[data-convo-id],[data-id]');
-  for(var j=0;j<nodes.length;j++){
-    var el=nodes[j];
-    var v=el.getAttribute('data-peer')||el.getAttribute('data-peer-id')||
-          el.getAttribute('data-convo-id')||el.getAttribute('data-id')||'';
-    if(/^c?-?\d+${'$'}/.test(v)) add(v,el.innerText);
-  }
+  // беседы вперёд — обычно нужна именно беседа
+  out.sort(function(a,b){
+    var A=(String(a.id).indexOf('2000000')===0)?0:1;
+    var B=(String(b.id).indexOf('2000000')===0)?0:1;
+    return A-B;
+  });
   return JSON.stringify(out);
-})();
-"""
-
-        /** Беседа, открытая прямо сейчас: адрес, затем разметка. */
-        private const val JS_CURRENT = """
-(function(){
-  var h=location.href;
-  var m=h.match(/[?&#]sel=(c?-?\d+)/)||h.match(/[?&#]peer=(c?-?\d+)/)||h.match(/\/im\/convo\/(-?\d+)/);
-  if(m)return m[1];
-  var sel=document.querySelector('[data-peer].im-page--chat,[data-peer-id].im-page--chat,'+
-    '.im-page--chat[data-peer],.im_convo[data-peer],[data-convo-id]');
-  if(sel){
-    var v=sel.getAttribute('data-peer')||sel.getAttribute('data-peer-id')||sel.getAttribute('data-convo-id');
-    if(v)return v;
-  }
-  var act=document.querySelector('a[href*="sel="][class*="selected"],a[href*="sel="][class*="active"],'+
-    'a[href*="sel="][aria-selected="true"]');
-  if(act){var mm=(act.getAttribute('href')||'').match(/sel=(c?-?\d+)/);if(mm)return mm[1];}
-  return '';
 })();
 """
     }
