@@ -390,6 +390,87 @@
       font-weight: 700;
     }
 
+    .house-paste-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 8px;
+      margin-top: 5px;
+      margin-bottom: 6px;
+      letter-spacing: 0.2px;
+      width: fit-content;
+    }
+    .badge-paste-today {
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #34D399 !important;
+      border: 1px solid rgba(16, 185, 129, 0.4) !important;
+    }
+    .badge-paste-today .paste-indicator-dot {
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+    }
+    .badge-paste-fresh {
+      background: rgba(59, 130, 246, 0.15) !important;
+      color: #60A5FA !important;
+      border: 1px solid rgba(59, 130, 246, 0.4) !important;
+    }
+    .badge-paste-fresh .paste-indicator-dot {
+      background: #3B82F6;
+    }
+    .badge-paste-ok {
+      background: rgba(234, 179, 8, 0.15) !important;
+      color: #FACC15 !important;
+      border: 1px solid rgba(234, 179, 8, 0.4) !important;
+    }
+    .badge-paste-ok .paste-indicator-dot {
+      background: #EAB308;
+    }
+    .badge-paste-warning {
+      background: rgba(249, 115, 22, 0.15) !important;
+      color: #FB923C !important;
+      border: 1px solid rgba(249, 115, 22, 0.45) !important;
+    }
+    .badge-paste-warning .paste-indicator-dot {
+      background: #F97316;
+      box-shadow: 0 0 6px #F97316;
+    }
+    .badge-paste-old {
+      background: rgba(239, 68, 68, 0.15) !important;
+      color: #F87171 !important;
+      border: 1px solid rgba(239, 68, 68, 0.45) !important;
+    }
+    .badge-paste-old .paste-indicator-dot {
+      background: #EF4444;
+      box-shadow: 0 0 6px #EF4444;
+    }
+    .badge-paste-never {
+      background: rgba(148, 163, 184, 0.1) !important;
+      color: #94A3B8 !important;
+      border: 1px solid rgba(148, 163, 184, 0.25) !important;
+    }
+    .badge-paste-never .paste-indicator-dot {
+      background: #64748B;
+    }
+    .paste-indicator-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+      flex: none;
+    }
+    .chip-need-paste {
+      border-color: rgba(249, 115, 22, 0.4) !important;
+      color: #FB923C !important;
+    }
+    .chip-need-paste.active {
+      background: rgba(249, 115, 22, 0.2) !important;
+      border-color: #F97316 !important;
+      color: #FB923C !important;
+    }
+
     .house-card.done .badge {
       background: rgba(16, 185, 129, 0.12);
       border-color: rgba(16, 185, 129, 0.2);
@@ -1274,12 +1355,21 @@
       <button class="chip" id="filterRemain" onclick="setFilter('remain')">Осталось (<span id="countRemain">32</span>)</button>
       <button class="chip" id="filterDone" onclick="setFilter('done')">Пройдено (<span id="countDone">0</span>)</button>
       <button class="chip" id="filterOrders" onclick="setFilter('orders')">С заявками (<span id="countOrders">0</span>)</button>
+      <button class="chip chip-need-paste" id="filterNeedPaste" onclick="setFilter('needPaste')" title="Дома, где расклейка была более 7 дней назад или еще не клеили">⚠️ Пора клеить (<span id="countNeedPaste">0</span>)</button>
     </div>
 
-    <!-- Street Filter Dropdown -->
-    <select id="streetSelect" class="street-filter-select" onchange="filterByStreet(this.value)">
-      <option value="">Все улицы района</option>
-    </select>
+    <!-- Street & Sort Filter Row -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <select id="streetSelect" class="street-filter-select" style="flex:1;margin-bottom:0;" onchange="filterByStreet(this.value)">
+        <option value="">Все улицы района</option>
+      </select>
+      <select id="sortSelect" class="street-filter-select" style="width:auto;flex:none;max-width:48%;margin-bottom:0;padding-right:24px;" onchange="handleSortChange(this.value)">
+        <option value="default">↕ По списку</option>
+        <option value="oldestPaste">⏳ Сначала старые</option>
+        <option value="newestPaste">✨ Сначала свежие</option>
+        <option value="ordersCount">🎯 По заявкам</option>
+      </select>
+    </div>
 
     <!-- Houses List Container -->
     <div id="housesList" class="houses-list">
@@ -1362,6 +1452,37 @@
         <div class="stat-card-label">⏱ В час</div>
         <div id="statPerHourVal" class="stat-card-val">—</div>
         <div class="stat-card-remain">подъездов / час</div>
+      </div>
+    </div>
+
+    <!-- Paste Freshness Card -->
+    <div class="portal-vk-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div class="card-title" style="margin-bottom:0;">📅 СВЕЖЕСТЬ РАСКЛЕЙКИ РАЙОНА</div>
+        <span id="statPasteFreshnessPercent" style="font-size:12px;font-weight:800;color:#34D399;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:10px;">0%</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="background:#161D2C;border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:10px;">
+          <div style="font-size:11px;color:var(--text-muted);">🟢 Свежие (до 3 дн)</div>
+          <div id="statPasteFreshVal" style="font-size:17px;font-weight:900;color:#34D399;margin-top:2px;">0 домов</div>
+        </div>
+        <div style="background:#161D2C;border:1px solid rgba(234,179,8,0.3);border-radius:10px;padding:10px;">
+          <div style="font-size:11px;color:var(--text-muted);">🟡 В норме (4–7 дн)</div>
+          <div id="statPasteOkVal" style="font-size:17px;font-weight:900;color:#FACC15;margin-top:2px;">0 домов</div>
+        </div>
+        <div style="background:#161D2C;border:1px solid rgba(249,115,22,0.3);border-radius:10px;padding:10px;">
+          <div style="font-size:11px;color:var(--text-muted);">🟠 Пора клеить (>7 дн)</div>
+          <div id="statPasteWarnVal" style="font-size:17px;font-weight:900;color:#FB923C;margin-top:2px;">0 домов</div>
+        </div>
+        <div style="background:#161D2C;border:1px solid rgba(148,163,184,0.25);border-radius:10px;padding:10px;">
+          <div style="font-size:11px;color:var(--text-muted);">⚪ Не клеили</div>
+          <div id="statPasteNeverVal" style="font-size:17px;font-weight:900;color:#94A3B8;margin-top:2px;">0 домов</div>
+        </div>
+      </div>
+
+      <div id="statPasteActivitySummary" style="font-size:12px;color:var(--text-muted);line-height:1.4;">
+        <!-- Rendered by JS -->
       </div>
     </div>
 
@@ -1727,6 +1848,53 @@
         </div>
       </div>
 
+      <!-- Section: История и дата расклейки -->
+      <div style="background:#161D2C;border:1px solid rgba(59,130,246,0.35);border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:800;color:#60A5FA;text-transform:uppercase;letter-spacing:0.5px;">📅 Расклейка дома</span>
+          <span id="hmPasteStatusBadge" style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;"></span>
+        </div>
+
+        <div id="hmPasteInfoText" style="font-size:13px;color:#fff;margin-bottom:12px;line-height:1.4;">
+          <!-- e.g. Последняя расклейка: 06.11.2026 (сегодня, 14:35) -->
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <button class="action-btn-secondary" style="flex:1;height:40px;font-size:13px;" onclick="hmTogglePasteDatePicker()">
+            📅 Указать дату расклейки
+          </button>
+          <button class="action-btn-secondary" style="flex:none;height:40px;font-size:13px;padding:0 14px;color:#34D399;border-color:rgba(52,211,153,0.3);" onclick="hmRecordPasteToday()">
+            ✓ Сегодня
+          </button>
+        </div>
+
+        <!-- Inline Date Picker Form (hidden by default) -->
+        <div id="hmPasteDatePickerForm" style="display:none;background:#0F141F;border:1px solid var(--border-color);border-radius:10px;padding:12px;margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Выберите дату и время расклейки:</div>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input type="date" id="hmPasteDateInput" class="form-input" style="flex:1;">
+            <input type="time" id="hmPasteTimeInput" class="form-input" style="width:105px;flex:none;">
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="action-btn-large" style="flex:1;height:38px;font-size:13px;background:var(--accent-gradient);" onclick="hmSaveCustomPasteDate()">
+              Сохранить дату
+            </button>
+            <button class="action-btn-secondary" style="flex:none;height:38px;padding:0 12px;font-size:13px;" onclick="hmTogglePasteDatePicker()">
+              Отмена
+            </button>
+          </div>
+        </div>
+
+        <!-- History of past paste dates -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.08);">
+          <span style="font-size:12px;color:var(--text-muted);font-weight:700;">История расклеек дома</span>
+          <span id="hmPasteHistoryCount" style="font-size:11px;color:var(--text-dim);">0 записей</span>
+        </div>
+        <div id="hmPasteHistoryList" style="margin-top:8px;max-height:160px;overflow-y:auto;">
+          <!-- List of history items rendered by JS -->
+        </div>
+      </div>
+
       <!-- Action buttons -->
       <div style="display:flex;gap:10px;">
         <button class="action-btn-secondary" style="flex:1;" onclick="hmOpenEditHouse()">
@@ -1783,8 +1951,9 @@
     // State
     let houses = [];
     let historyRecords = [];
-    let currentFilter = 'all'; // 'all', 'remain', 'done', 'orders'
+    let currentFilter = 'all'; // 'all', 'remain', 'done', 'orders', 'needPaste'
     let currentStreetFilter = '';
+    let currentSort = 'default';
     let searchQuery = '';
     let openPanels = new Set();
 
@@ -1856,13 +2025,21 @@
           visitedEntrances: 0,
           checkedEntrances: [],
           visitedAt: null,
-          orders: []
+          orders: [],
+          lastPastedDate: null,
+          lastPastedTime: null,
+          lastPastedTimestamp: null,
+          pasteHistory: []
         }));
         saveState();
       } else {
-        // Ensure orders array exists on every house
+        // Ensure orders array and pasteHistory exist on every house
         houses.forEach(h => {
           if (!Array.isArray(h.orders)) h.orders = [];
+          if (!Array.isArray(h.pasteHistory)) h.pasteHistory = [];
+          if (h.lastPastedDate === undefined) h.lastPastedDate = null;
+          if (h.lastPastedTime === undefined) h.lastPastedTime = null;
+          if (h.lastPastedTimestamp === undefined) h.lastPastedTimestamp = null;
         });
       }
 
@@ -2142,6 +2319,143 @@
       renderHousesList();
     }
 
+    // --- PASTE TRACKING SYSTEM (СИСТЕМА ДАТ РАСКЛЕЙКИ) ---
+    function getPasteStatus(house) {
+      if (!house || !house.lastPastedDate) {
+        return {
+          status: 'never',
+          text: 'Не клеили',
+          sub: '',
+          badgeClass: 'badge-paste-never',
+          daysAgo: 9999,
+          formattedDate: '—'
+        };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const parts = String(house.lastPastedDate).split('-').map(Number);
+      if (parts.length !== 3 || isNaN(parts[0])) {
+        return {
+          status: 'never',
+          text: 'Не клеили',
+          sub: '',
+          badgeClass: 'badge-paste-never',
+          daysAgo: 9999,
+          formattedDate: '—'
+        };
+      }
+
+      const [y, m, d] = parts;
+      const pasteDate = new Date(y, m - 1, d);
+      pasteDate.setHours(0, 0, 0, 0);
+
+      const diffTime = today.getTime() - pasteDate.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      const dStr = `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+      const shortStr = `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}`;
+
+      if (diffDays === 0) {
+        return {
+          status: 'today',
+          text: 'Клеили сегодня',
+          sub: house.lastPastedTime ? `в ${house.lastPastedTime}` : '',
+          badgeClass: 'badge-paste-today',
+          daysAgo: 0,
+          formattedDate: dStr
+        };
+      } else if (diffDays === 1) {
+        return {
+          status: 'fresh',
+          text: 'Вчера',
+          sub: shortStr,
+          badgeClass: 'badge-paste-fresh',
+          daysAgo: 1,
+          formattedDate: dStr
+        };
+      } else if (diffDays <= 3) {
+        return {
+          status: 'fresh',
+          text: `${diffDays} дн. назад`,
+          sub: shortStr,
+          badgeClass: 'badge-paste-fresh',
+          daysAgo: diffDays,
+          formattedDate: dStr
+        };
+      } else if (diffDays <= 7) {
+        return {
+          status: 'ok',
+          text: `${diffDays} дн. назад`,
+          sub: shortStr,
+          badgeClass: 'badge-paste-ok',
+          daysAgo: diffDays,
+          formattedDate: dStr
+        };
+      } else if (diffDays <= 14) {
+        return {
+          status: 'warning',
+          text: `⚠️ ${diffDays} дн. назад`,
+          sub: 'Пора обновить',
+          badgeClass: 'badge-paste-warning',
+          daysAgo: diffDays,
+          formattedDate: dStr
+        };
+      } else {
+        return {
+          status: 'old',
+          text: `🔴 ${diffDays} дн. назад`,
+          sub: 'Давно не клеили',
+          badgeClass: 'badge-paste-old',
+          daysAgo: diffDays,
+          formattedDate: dStr
+        };
+      }
+    }
+
+    function recordPaste(houseId, customDateIso = null, customTimeStr = null) {
+      const house = houses.find(h => h.id === houseId);
+      if (!house) return;
+
+      const now = new Date();
+      const dateIso = customDateIso || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const timeStr = customTimeStr || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      house.lastPastedDate = dateIso;
+      house.lastPastedTime = timeStr;
+      house.lastPastedTimestamp = new Date(dateIso + 'T' + timeStr).getTime() || Date.now();
+
+      if (!Array.isArray(house.pasteHistory)) house.pasteHistory = [];
+
+      const [y, m, d] = dateIso.split('-');
+      const formattedDate = `${String(d).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
+
+      const existingIdx = house.pasteHistory.findIndex(p => p.dateIso === dateIso);
+      if (existingIdx >= 0) {
+        house.pasteHistory[existingIdx].time = timeStr;
+        house.pasteHistory[existingIdx].timestamp = Date.now();
+        house.pasteHistory[existingIdx].entrances = house.entrances;
+      } else {
+        house.pasteHistory.unshift({
+          id: 'paste_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          dateIso: dateIso,
+          date: formattedDate,
+          time: timeStr,
+          entrances: house.entrances,
+          timestamp: Date.now()
+        });
+      }
+
+      house.pasteHistory.sort((a, b) => (b.dateIso || '').localeCompare(a.dateIso || ''));
+      saveState();
+    }
+
+    function handleSortChange(sortVal) {
+      currentSort = sortVal;
+      renderHousesList();
+    }
+
     function clearSearch() {
       document.getElementById('searchInput').value = '';
       searchQuery = '';
@@ -2156,6 +2470,8 @@
       document.getElementById('filterRemain').className = 'chip ' + (filter === 'remain' ? 'active' : '');
       document.getElementById('filterDone').className = 'chip ' + (filter === 'done' ? 'active-done' : '');
       document.getElementById('filterOrders').className = 'chip ' + (filter === 'orders' ? 'active-orders' : '');
+      const elNeed = document.getElementById('filterNeedPaste');
+      if (elNeed) elNeed.className = 'chip chip-need-paste ' + (filter === 'needPaste' ? 'active' : '');
       renderHousesList();
     }
 
@@ -2176,12 +2492,28 @@
         house.visitedEntrances = 0;
         house.checkedEntrances = [];
         house.visitedAt = null;
+        // Если отметка снята сегодня, откатываем сегодняшнюю запись расклейки (если была сделана сегодня)
+        const todayIso = new Date().toISOString().split('T')[0];
+        if (house.lastPastedDate === todayIso && Array.isArray(house.pasteHistory)) {
+          house.pasteHistory = house.pasteHistory.filter(p => p.dateIso !== todayIso);
+          if (house.pasteHistory.length > 0) {
+            house.lastPastedDate = house.pasteHistory[0].dateIso;
+            house.lastPastedTime = house.pasteHistory[0].time;
+            house.lastPastedTimestamp = house.pasteHistory[0].timestamp;
+          } else {
+            house.lastPastedDate = null;
+            house.lastPastedTime = null;
+            house.lastPastedTimestamp = null;
+          }
+        }
       } else {
         house.visited = true;
         house.visitedEntrances = house.entrances;
         house.checkedEntrances = Array.from({ length: house.entrances }, (_, i) => i + 1);
         const now = new Date();
         house.visitedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        // Автоматически фиксируем расклейку дома сегодняшним числом!
+        recordPaste(house.id);
       }
 
       saveState();
@@ -2210,6 +2542,10 @@
         house.visitedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       } else if (house.visitedEntrances === 0) {
         house.visitedAt = null;
+      }
+
+      if (house.visited) {
+        recordPaste(house.id);
       }
 
       saveState();
@@ -2304,6 +2640,119 @@
         `;
       }
       document.getElementById('hmEntrancesChips').innerHTML = entHtml;
+
+      // Section: История и дата расклейки в меню дома
+      const pasteStatus = getPasteStatus(house);
+      const hmBadge = document.getElementById('hmPasteStatusBadge');
+      if (hmBadge) {
+        hmBadge.className = pasteStatus.badgeClass;
+        hmBadge.innerText = pasteStatus.text;
+      }
+
+      const hmInfo = document.getElementById('hmPasteInfoText');
+      if (hmInfo) {
+        if (house.lastPastedDate) {
+          const daysText = pasteStatus.daysAgo === 0 ? '<span style="color:#34D399;font-weight:700;">сегодня</span>' : `${pasteStatus.daysAgo} дн. назад`;
+          hmInfo.innerHTML = `Последняя расклейка: <b style="color:#fff;">${pasteStatus.formattedDate}</b> ${house.lastPastedTime ? `в ${house.lastPastedTime}` : ''} (${daysText})`;
+        } else {
+          hmInfo.innerHTML = `<span style="color:var(--text-muted);">Дом ещё ни разу не отмечался как проклеенный.</span>`;
+        }
+      }
+
+      const hist = house.pasteHistory || [];
+      const histCountEl = document.getElementById('hmPasteHistoryCount');
+      if (histCountEl) histCountEl.innerText = `${hist.length} ${declOfNum(hist.length, ['запись', 'записи', 'записей'])}`;
+
+      const histList = document.getElementById('hmPasteHistoryList');
+      if (histList) {
+        if (hist.length === 0) {
+          histList.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:8px 0;text-align:center;">Истории расклеек пока нет</div>`;
+        } else {
+          histList.innerHTML = hist.map(p => `
+            <div style="display:flex;justify-content:space-between;align-items:center;background:#1A2335;border:1px solid var(--border-color);border-radius:8px;padding:8px 10px;margin-bottom:6px;">
+              <div>
+                <span style="font-weight:700;color:#fff;font-size:13px;">📅 ${p.date}</span>
+                ${p.time ? `<span style="color:var(--text-muted);font-size:12px;margin-left:6px;">${p.time}</span>` : ''}
+                <span style="font-size:11px;color:var(--text-dim);margin-left:6px;">(${p.entrances || house.entrances} под.)</span>
+              </div>
+              <button style="background:transparent;border:none;color:#FF5A65;font-size:14px;cursor:pointer;padding:2px 8px;" onclick="hmDeletePasteRecord('${p.id}')" title="Удалить эту запись">✕</button>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function hmTogglePasteDatePicker() {
+      const form = document.getElementById('hmPasteDatePickerForm');
+      if (form.style.display === 'none' || !form.style.display) {
+        form.style.display = 'block';
+        const now = new Date();
+        const house = houses.find(h => h.id === currentMenuHouseId);
+        const defaultDate = (house && house.lastPastedDate) ? house.lastPastedDate : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const defaultTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        document.getElementById('hmPasteDateInput').value = defaultDate;
+        document.getElementById('hmPasteTimeInput').value = defaultTime;
+      } else {
+        form.style.display = 'none';
+      }
+    }
+
+    function hmRecordPasteToday() {
+      if (!currentMenuHouseId) return;
+      doVibrate(40);
+      recordPaste(currentMenuHouseId);
+      const house = houses.find(h => h.id === currentMenuHouseId);
+      if (house && !house.visited) {
+        house.visited = true;
+        house.visitedEntrances = house.entrances;
+        house.checkedEntrances = Array.from({ length: house.entrances }, (_, i) => i + 1);
+        const now = new Date();
+        house.visitedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        saveState();
+      }
+      showToast('Расклейка дома зафиксирована на сегодня!');
+      renderHouseMenuContent();
+      renderHousesList();
+    }
+
+    function hmSaveCustomPasteDate() {
+      if (!currentMenuHouseId) return;
+      const dateVal = document.getElementById('hmPasteDateInput').value;
+      const timeVal = document.getElementById('hmPasteTimeInput').value || '12:00';
+      if (!dateVal) {
+        alert('Пожалуйста, выберите дату');
+        return;
+      }
+      doVibrate(40);
+      recordPaste(currentMenuHouseId, dateVal, timeVal);
+      document.getElementById('hmPasteDatePickerForm').style.display = 'none';
+      showToast('Дата расклейки сохранена!');
+      renderHouseMenuContent();
+      renderHousesList();
+    }
+
+    function hmDeletePasteRecord(pasteRecordId) {
+      if (!currentMenuHouseId) return;
+      const house = houses.find(h => h.id === currentMenuHouseId);
+      if (!house || !Array.isArray(house.pasteHistory)) return;
+
+      if (confirm('Удалить эту запись о расклейке из истории?')) {
+        doVibrate(30);
+        house.pasteHistory = house.pasteHistory.filter(p => p.id !== pasteRecordId);
+        if (house.pasteHistory.length > 0) {
+          house.lastPastedDate = house.pasteHistory[0].dateIso;
+          house.lastPastedTime = house.pasteHistory[0].time;
+          house.lastPastedTimestamp = house.pasteHistory[0].timestamp;
+        } else {
+          house.lastPastedDate = null;
+          house.lastPastedTime = null;
+          house.lastPastedTimestamp = null;
+        }
+        saveState();
+        showToast('Запись удалена');
+        renderHouseMenuContent();
+        renderHousesList();
+      }
     }
 
     function closeHouseMenu() {
@@ -2562,11 +3011,14 @@
       const doneCount = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
       const remainCount = totalCount - doneCount;
       const ordersCount = houses.reduce((sum, h) => sum + (h.orders ? h.orders.length : 0), 0);
+      const needPasteCount = houses.filter(h => getPasteStatus(h).daysAgo >= 8).length;
 
       document.getElementById('countAll').innerText = totalCount;
       document.getElementById('countRemain').innerText = remainCount;
       document.getElementById('countDone').innerText = doneCount;
       document.getElementById('countOrders').innerText = ordersCount;
+      const elCountNeedPaste = document.getElementById('countNeedPaste');
+      if (elCountNeedPaste) elCountNeedPaste.innerText = needPasteCount;
 
       const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
       document.getElementById('headerProgressFill').style.width = percent + '%';
@@ -2576,6 +3028,7 @@
         if (currentFilter === 'remain' && (h.visited || h.visitedEntrances > 0)) return false;
         if (currentFilter === 'done' && !(h.visited || h.visitedEntrances > 0)) return false;
         if (currentFilter === 'orders' && (!h.orders || h.orders.length === 0)) return false;
+        if (currentFilter === 'needPaste' && getPasteStatus(h).daysAgo < 8) return false;
         if (currentStreetFilter && h.street !== currentStreetFilter) return false;
         if (searchQuery) {
           const matchStreet = h.street.toLowerCase().includes(searchQuery);
@@ -2584,6 +3037,15 @@
         }
         return true;
       });
+
+      // Sorting
+      if (currentSort === 'oldestPaste') {
+        filtered.sort((a, b) => getPasteStatus(b).daysAgo - getPasteStatus(a).daysAgo);
+      } else if (currentSort === 'newestPaste') {
+        filtered.sort((a, b) => getPasteStatus(a).daysAgo - getPasteStatus(b).daysAgo);
+      } else if (currentSort === 'ordersCount') {
+        filtered.sort((a, b) => (b.orders ? b.orders.length : 0) - (a.orders ? a.orders.length : 0));
+      }
 
       if (!filtered.length) {
         container.innerHTML = `
@@ -2601,6 +3063,7 @@
         const isPartial = !isDone && h.visitedEntrances > 0;
         const cardClass = isDone ? 'house-card done' : (isPartial ? 'house-card partial' : 'house-card');
         const isOpen = openPanels.has(h.id);
+        const pasteStatus = getPasteStatus(h);
 
         let checkedCount = h.checkedEntrances ? h.checkedEntrances.length : (h.visited ? h.entrances : 0);
         const houseOrders = h.orders || [];
@@ -2649,6 +3112,12 @@
               <button class="house-card-menu-btn" title="Меню дома" onclick="openHouseMenu('${h.id}', event)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
               </button>
+            </div>
+
+            <div class="house-paste-tag ${pasteStatus.badgeClass}">
+              <span class="paste-indicator-dot"></span>
+              <span>📅 ${pasteStatus.text}</span>
+              ${pasteStatus.sub ? `<span style="opacity:0.8;font-size:11px;">(${pasteStatus.sub})</span>` : ''}
             </div>
 
             <div class="house-badges">
@@ -2761,6 +3230,46 @@
         <span class="eq-chip">📹 Камеры: <b>${eqMap['Камера']}</b></span>
         <span class="eq-chip">📱 SIM: <b>${eqMap['SIM']}</b></span>
       `;
+
+      // --- Paste Freshness Stats Calculations ---
+      let pasteFreshCount = 0;
+      let pasteOkCount = 0;
+      let pasteWarnCount = 0;
+      let pasteNeverCount = 0;
+      let pastedTodayCount = 0;
+
+      houses.forEach(h => {
+        const st = getPasteStatus(h);
+        if (st.status === 'today') pastedTodayCount++;
+        if (st.daysAgo <= 3) pasteFreshCount++;
+        else if (st.daysAgo <= 7) pasteOkCount++;
+        else if (st.daysAgo < 9999) pasteWarnCount++;
+        else pasteNeverCount++;
+      });
+
+      const freshPercent = totalHouses > 0 ? Math.round(((pasteFreshCount + pasteOkCount) / totalHouses) * 100) : 0;
+      const elFreshPct = document.getElementById('statPasteFreshnessPercent');
+      if (elFreshPct) elFreshPct.innerText = `${freshPercent}% в норме`;
+
+      const elFreshVal = document.getElementById('statPasteFreshVal');
+      if (elFreshVal) elFreshVal.innerText = `${pasteFreshCount} ${declOfNum(pasteFreshCount, ['дом', 'дома', 'домов'])}`;
+
+      const elOkVal = document.getElementById('statPasteOkVal');
+      if (elOkVal) elOkVal.innerText = `${pasteOkCount} ${declOfNum(pasteOkVal, ['дом', 'дома', 'домов'])}`;
+
+      const elWarnVal = document.getElementById('statPasteWarnVal');
+      if (elWarnVal) elWarnVal.innerText = `${pasteWarnCount} ${declOfNum(pasteWarnCount, ['дом', 'дома', 'домов'])}`;
+
+      const elNeverVal = document.getElementById('statPasteNeverVal');
+      if (elNeverVal) elNeverVal.innerText = `${pasteNeverCount} ${declOfNum(pasteNeverCount, ['дом', 'дома', 'домов'])}`;
+
+      const elActSummary = document.getElementById('statPasteActivitySummary');
+      if (elActSummary) {
+        elActSummary.innerHTML = `
+          Проклеено за сегодня: <b style="color:#34D399;">${pastedTodayCount} ${declOfNum(pastedTodayCount, ['дом', 'дома', 'домов'])}</b>. 
+          Требуют обновления или ещё не клеились: <b style="color:#FB923C;">${pasteWarnCount + pasteNeverCount} ${declOfNum(pasteWarnCount + pasteNeverCount, ['дом', 'дома', 'домов'])}</b>.
+        `;
+      }
 
       // Render all orders list in stats
       const ordersContainer = document.getElementById('allOrdersListStats');
@@ -2985,7 +3494,11 @@
           visitedEntrances: 0,
           checkedEntrances: [],
           visitedAt: null,
-          orders: []
+          orders: [],
+          lastPastedDate: null,
+          lastPastedTime: null,
+          lastPastedTimestamp: null,
+          pasteHistory: []
         });
         showToast(`Дом ${street}, ${houseNum} добавлен!`);
       }
@@ -3018,7 +3531,11 @@
           visitedEntrances: 0,
           checkedEntrances: [],
           visitedAt: null,
-          orders: []
+          orders: [],
+          lastPastedDate: null,
+          lastPastedTime: null,
+          lastPastedTimestamp: null,
+          pasteHistory: []
         }));
         saveState();
         showToast('База сброшена к исходным адресам');
