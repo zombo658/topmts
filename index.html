@@ -1650,7 +1650,9 @@
           <div class="sel-chip active" id="chipMnp0" onclick="selectMnpCount(0)">0 MNP</div>
           <div class="sel-chip" id="chipMnp1" onclick="selectMnpCount(1)">1 MNP</div>
           <div class="sel-chip" id="chipMnp2" onclick="selectMnpCount(2)">2 MNP</div>
-          <div class="sel-chip" id="chipMnp3" onclick="selectMnpCount(3)">3+ MNP</div>
+          <div class="sel-chip" id="chipMnp3" onclick="selectMnpCount(3)">3 MNP</div>
+          <div class="sel-chip" id="chipMnp4" onclick="selectMnpCount(4)">4 MNP</div>
+          <div class="sel-chip" id="chipMnp5" onclick="selectMnpCount(5)">5 MNP</div>
         </div>
       </div>
 
@@ -1661,7 +1663,6 @@
           <div class="sel-chip" id="chipEqTv" onclick="toggleEquipment('Приставка')">📺 Приставка (IPTV)</div>
           <div class="sel-chip" id="chipEqCam" onclick="toggleEquipment('Камера')">📹 Камера видеонаблюдения</div>
           <div class="sel-chip" id="chipEqSim" onclick="toggleEquipment('SIM')">📱 SIM / Связь</div>
-          <div class="sel-chip" id="chipEqSmart" onclick="toggleEquipment('Умный дом')">💡 Умный дом</div>
         </div>
       </div>
 
@@ -1677,6 +1678,64 @@
       <button id="btnDeleteOrder" class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);display:none;" onclick="deleteCurrentOrder()">
         Удалить заявку
       </button>
+    </div>
+  </div>
+
+  
+  <!-- MODAL 3: DEDICATED HOUSE MENU (ОТДЕЛЬНОЕ МЕНЮ ДОМА) -->
+  <div id="houseMenuModal" class="modal-backdrop" onclick="closeHouseMenuOnBackdrop(event)">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div>
+          <div id="hmTitle" class="modal-title">ул. Рябикова, д. 51</div>
+          <div id="hmSubtitle" style="font-size:13px;color:var(--text-muted);margin-top:2px;">4 под. • 144 кв. • 9 эт.</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeHouseMenu()">✕</button>
+      </div>
+
+      <input type="hidden" id="hmHouseId">
+
+      <!-- Status Toggle & Badges inside Menu -->
+      <div id="hmStatusBox" style="margin-bottom:14px;">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Section: Заявки по этому дому -->
+      <div style="background:#161D2C;border:1px solid rgba(245,158,11,0.35);border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:800;color:#FBBF24;text-transform:uppercase;letter-spacing:0.5px;">🎯 Заявки по этому дому</span>
+          <span id="hmOrdersCountBadge" style="background:#F59E0B;color:#000;font-size:11px;font-weight:900;padding:2px 8px;border-radius:10px;">0 заявок</span>
+        </div>
+
+        <button class="action-btn-large" style="background:linear-gradient(135deg,#F59E0B 0%,#D97706 100%);color:#000;height:46px;font-size:14px;box-shadow:0 3px 12px rgba(245,158,11,0.25);margin-bottom:12px;" onclick="hmOpenAddOrder()">
+          ➕ Добавить заявку в этот дом
+        </button>
+
+        <div id="hmOrdersList">
+          <!-- List of orders for this house -->
+        </div>
+      </div>
+
+      <!-- Section: Подъезды -->
+      <div style="background:#161D2C;border:1px solid var(--border-color);border-radius:14px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Отметка подъездов</span>
+          <span id="hmEntrancesSummary" style="font-size:12px;font-weight:700;color:#fff;">0 из 4</span>
+        </div>
+        <div id="hmEntrancesChips" class="entrance-chips">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:10px;">
+        <button class="action-btn-secondary" style="flex:1;" onclick="hmOpenEditHouse()">
+          ✎ Параметры дома
+        </button>
+        <button class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);width:auto;padding:0 16px;" onclick="hmDeleteHouse()">
+          🗑️ Удалить
+        </button>
+      </div>
     </div>
   </div>
 
@@ -2167,6 +2226,133 @@
       renderHousesList();
     }
 
+
+    // --- DEDICATED HOUSE MENU (МЕНЮ ДОМА) ---
+    let currentMenuHouseId = null;
+
+    function openHouseMenu(houseId, event = null) {
+      if (event) event.stopPropagation();
+      doVibrate(30);
+      const house = houses.find(h => h.id === houseId);
+      if (!house) return;
+
+      currentMenuHouseId = houseId;
+      document.getElementById('hmHouseId').value = houseId;
+      document.getElementById('hmTitle').innerText = `${house.street}, д. ${house.house}`;
+      document.getElementById('hmSubtitle').innerText = `${house.entrances} под. • ${house.flats} кв. • ${house.floors} эт.`;
+
+      renderHouseMenuContent();
+      document.getElementById('houseMenuModal').classList.add('open');
+    }
+
+    function renderHouseMenuContent() {
+      const house = houses.find(h => h.id === currentMenuHouseId);
+      if (!house) return;
+
+      const isDone = house.visited || (house.visitedEntrances === house.entrances);
+      const checkedCount = house.checkedEntrances ? house.checkedEntrances.length : (house.visited ? house.entrances : 0);
+
+      // Status Box
+      document.getElementById('hmStatusBox').innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#182234;border:1px solid ${isDone ? 'rgba(16,185,129,0.5)' : 'var(--border-color)'};border-radius:12px;padding:12px 14px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:${isDone ? 'var(--done)' : '#fff'};">
+              ${isDone ? '✓ Дом пройден' : 'Дом не пройден'}
+            </div>
+            ${house.visitedAt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Время: ${house.visitedAt}</div>` : ''}
+          </div>
+          <button class="btn-toggle-done" style="flex:none;height:40px;padding:0 16px;font-size:13px;background:${isDone ? 'var(--done-gradient)' : '#242F46'};border-color:${isDone ? 'var(--done)' : 'var(--border-color)'};" onclick="hmToggleDone()">
+            ${isDone ? 'Снять отметку' : 'Отметить пройденным'}
+          </button>
+        </div>
+      `;
+
+      // Orders for this house
+      const orders = house.orders || [];
+      document.getElementById('hmOrdersCountBadge').innerText = `${orders.length} ${declOfNum(orders.length, ['заявка', 'заявки', 'заявок'])}`;
+
+      const ordersList = document.getElementById('hmOrdersList');
+      if (orders.length === 0) {
+        ordersList.innerHTML = `<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:10px 0;">В этом доме пока нет заявок</div>`;
+      } else {
+        ordersList.innerHTML = orders.map(ord => {
+          const eqStr = (ord.equipment && ord.equipment.length) ? ' • ' + ord.equipment.join(', ') : '';
+          return `
+            <div style="background:#1A2335;border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;" onclick="openAddOrderModal('${house.id}', '${ord.id}', event)">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#fff;">🎯 Кв. ${escapeHtml(ord.flat)} — <span style="color:#FBBF24;">📞 ${escapeHtml(ord.phone)}</span></div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">
+                  Услуг: <b>${ord.servicesCount}</b> &nbsp;|&nbsp; MNP: <b>${ord.mnpCount}</b>${eqStr}
+                </div>
+                ${ord.comment ? `<div style="font-size:11px;color:var(--text-dim);margin-top:3px;">💬 ${escapeHtml(ord.comment)}</div>` : ''}
+              </div>
+              <span style="font-size:18px;color:var(--order-gold);padding-left:10px;">✎</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Entrances chips inside Menu
+      document.getElementById('hmEntrancesSummary').innerText = `${checkedCount} из ${house.entrances}`;
+      let entHtml = '';
+      for (let i = 1; i <= house.entrances; i++) {
+        const isChecked = house.checkedEntrances && house.checkedEntrances.includes(i);
+        entHtml += `
+          <div class="entrance-chip ${isChecked ? 'checked' : ''}" onclick="hmToggleEntrance(${i})">
+            <span>${i}</span>
+          </div>
+        `;
+      }
+      document.getElementById('hmEntrancesChips').innerHTML = entHtml;
+    }
+
+    function closeHouseMenu() {
+      document.getElementById('houseMenuModal').classList.remove('open');
+      currentMenuHouseId = null;
+    }
+
+    function closeHouseMenuOnBackdrop(e) {
+      if (e.target.id === 'houseMenuModal') closeHouseMenu();
+    }
+
+    function hmToggleDone() {
+      if (!currentMenuHouseId) return;
+      toggleHouseDone(currentMenuHouseId);
+      renderHouseMenuContent();
+    }
+
+    function hmToggleEntrance(i) {
+      if (!currentMenuHouseId) return;
+      toggleEntrance(currentMenuHouseId, i);
+      renderHouseMenuContent();
+    }
+
+    function hmOpenAddOrder() {
+      if (!currentMenuHouseId) return;
+      openAddOrderModal(currentMenuHouseId, null);
+    }
+
+    function hmOpenEditHouse() {
+      if (!currentMenuHouseId) return;
+      const hId = currentMenuHouseId;
+      closeHouseMenu();
+      openEditModal(hId);
+    }
+
+    function hmDeleteHouse() {
+      if (!currentMenuHouseId) return;
+      const hId = currentMenuHouseId;
+      const house = houses.find(h => h.id === hId);
+      if (!house) return;
+      if (confirm(`Удалить дом ${house.street}, ${house.house} из базы района?`)) {
+        doVibrate(40);
+        houses = houses.filter(h => h.id !== hId);
+        saveState();
+        closeHouseMenu();
+        showToast('Дом удален');
+      }
+    }
+
     // --- ORDERS LOGIC (ЗАЯВКИ) ---
     function openAddOrderModal(houseId, orderId = null, event = null) {
       if (event) event.stopPropagation();
@@ -2238,13 +2424,14 @@
       document.getElementById('chipMnp0').className = 'sel-chip ' + (currentOrderMnp === 0 ? 'active' : '');
       document.getElementById('chipMnp1').className = 'sel-chip ' + (currentOrderMnp === 1 ? 'active' : '');
       document.getElementById('chipMnp2').className = 'sel-chip ' + (currentOrderMnp === 2 ? 'active' : '');
-      document.getElementById('chipMnp3').className = 'sel-chip ' + (currentOrderMnp >= 3 ? 'active' : '');
+      document.getElementById('chipMnp3').className = 'sel-chip ' + (currentOrderMnp === 3 ? 'active' : '');
+      document.getElementById('chipMnp4').className = 'sel-chip ' + (currentOrderMnp === 4 ? 'active' : '');
+      document.getElementById('chipMnp5').className = 'sel-chip ' + (currentOrderMnp === 5 ? 'active' : '');
 
       document.getElementById('chipEqRouter').className = 'sel-chip ' + (currentOrderEquipment.has('Роутер') ? 'active' : '');
       document.getElementById('chipEqTv').className = 'sel-chip ' + (currentOrderEquipment.has('Приставка') ? 'active' : '');
       document.getElementById('chipEqCam').className = 'sel-chip ' + (currentOrderEquipment.has('Камера') ? 'active' : '');
       document.getElementById('chipEqSim').className = 'sel-chip ' + (currentOrderEquipment.has('SIM') ? 'active' : '');
-      document.getElementById('chipEqSmart').className = 'sel-chip ' + (currentOrderEquipment.has('Умный дом') ? 'active' : '');
     }
 
     function closeOrderModal() {
@@ -2313,6 +2500,9 @@
 
       saveState();
       closeOrderModal();
+      if (currentMenuHouseId && document.getElementById('houseMenuModal').classList.contains('open')) {
+        renderHouseMenuContent();
+      }
     }
 
     function deleteCurrentOrder() {
@@ -2447,7 +2637,7 @@
         }
 
         return `
-          <div class="${cardClass}" onclick="openEditModal('${h.id}')">
+          <div class="${cardClass}" onclick="openHouseMenu('${h.id}')">
             <div class="house-card-top">
               <div class="house-address">
                 <span class="house-street">${escapeHtml(h.street)}</span>
@@ -2456,7 +2646,7 @@
                   ${h.visitedAt ? `<span class="house-time-tag">✓ ${h.visitedAt}</span>` : ''}
                 </div>
               </div>
-              <button class="house-card-menu-btn" title="Редактировать дом" onclick="openEditModal('${h.id}', event)">
+              <button class="house-card-menu-btn" title="Меню дома" onclick="openHouseMenu('${h.id}', event)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
               </button>
             </div>
@@ -2550,7 +2740,7 @@
       const totalServicesCount = allOrders.reduce((sum, o) => sum + (o.servicesCount || 1), 0);
       const totalMnpCount = allOrders.reduce((sum, o) => sum + (o.mnpCount || 0), 0);
 
-      const eqMap = { 'Роутер': 0, 'Приставка': 0, 'Камера': 0, 'SIM': 0, 'Умный дом': 0 };
+      const eqMap = { 'Роутер': 0, 'Приставка': 0, 'Камера': 0, 'SIM': 0 };
       allOrders.forEach(o => {
         if (Array.isArray(o.equipment)) {
           o.equipment.forEach(item => {
@@ -2570,7 +2760,6 @@
         <span class="eq-chip">📺 Приставки: <b>${eqMap['Приставка']}</b></span>
         <span class="eq-chip">📹 Камеры: <b>${eqMap['Камера']}</b></span>
         <span class="eq-chip">📱 SIM: <b>${eqMap['SIM']}</b></span>
-        <span class="eq-chip">💡 Умный дом: <b>${eqMap['Умный дом']}</b></span>
       `;
 
       // Render all orders list in stats
@@ -2650,14 +2839,13 @@
     function confirmNewDay() {
       doVibrate(30);
       const doneHouses = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
-      const totalOrders = houses.reduce((s, h) => s + (h.orders ? h.orders.length : 0), 0);
 
-      if (doneHouses === 0 && totalOrders === 0) {
-        alert('Сегодня ещё не отмечено ни одного дома и нет заявок.');
+      if (doneHouses === 0) {
+        alert('Сегодня ещё не отмечено ни одного дома.');
         return;
       }
 
-      if (confirm(`Завершить смену? Пройдено ${doneHouses} домов, оформлено ${totalOrders} заявок. Текущие отметки сохранятся в архив истории, а список очистится для нового дня.`)) {
+      if (confirm(`Завершить смену? Пройдено ${doneHouses} домов. Отметки домов очистятся для нового обхода (все оформленные заявки останутся на своих местах).`)) {
         const now = new Date();
         const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
         const totalEntrances = houses.reduce((sum, h) => {
@@ -2669,13 +2857,12 @@
           date: dateStr,
           housesCount: doneHouses,
           entrancesCount: totalEntrances,
-          ordersCount: totalOrders,
           timeWorked: formatTimer(shiftSeconds),
           timestamp: Date.now()
         });
         saveHistory();
 
-        // Reset houses
+        // Reset houses visited status only (orders stay intact!)
         houses.forEach(h => {
           h.visited = false;
           h.visitedEntrances = 0;
@@ -2692,7 +2879,7 @@
         localStorage.setItem('topmts_shift_seconds', '0');
         updateShiftTimerDisplay();
 
-        showToast('Новый обход начат! История сохранена.');
+        showToast('Новый обход начат! Отметки сброшены.');
         navTo('houses');
       }
     }
@@ -2709,7 +2896,6 @@
           <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px;">📅 ${item.date} — время: ${item.timeWorked || '—'}</div>
           <div style="font-size:12px;color:var(--text-muted);">
             🏠 Домов: <b>${item.housesCount}</b> &nbsp;|&nbsp; 🚪 Подъездов: <b>${item.entrancesCount}</b>
-            ${item.ordersCount ? `&nbsp;|&nbsp; 🎯 Заявок: <b>${item.ordersCount}</b>` : ''}
           </div>
         </div>
       `).join('');
@@ -2922,6 +3108,11 @@
       const orderModal = document.getElementById('orderModal');
       if (orderModal.classList.contains('open')) {
         closeOrderModal();
+        return true;
+      }
+      const hmModal = document.getElementById('houseMenuModal');
+      if (hmModal && hmModal.classList.contains('open')) {
+        closeHouseMenu();
         return true;
       }
       const modal = document.getElementById('addModal');
