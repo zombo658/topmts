@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>МТС Район — Обход, Портал и ВК</title>
+  <title>МТС Район — Обход, Заявки и Отчёт</title>
   <style>
     :root {
       --bg-dark: #0A0D14;
@@ -19,6 +19,7 @@
       --partial: #F59E0B;
       --blue: #38BDF8;
       --vk-blue: #2787F5;
+      --order-gold: #F59E0B;
       --text: #F1F5F9;
       --text-muted: #94A3B8;
       --text-dim: #64748B;
@@ -41,10 +42,9 @@
       color: var(--text);
       min-height: 100vh;
       overflow-x: hidden;
-      padding-bottom: 84px; /* Space for bottom nav */
+      padding-bottom: 84px;
     }
 
-    /* Top Header Bar */
     header {
       position: sticky;
       top: 0;
@@ -130,7 +130,6 @@
       100% { opacity: 1; transform: scale(1); }
     }
 
-    /* Mini Progress Header */
     .header-summary {
       display: flex;
       align-items: center;
@@ -169,7 +168,6 @@
       transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Screen Container */
     .screen {
       display: none;
       padding: 16px;
@@ -185,7 +183,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Search and Filters */
     .search-box {
       position: relative;
       margin-bottom: 12px;
@@ -234,7 +231,6 @@
       cursor: pointer;
     }
 
-    /* Chip Filters */
     .filter-chips {
       display: flex;
       gap: 8px;
@@ -270,6 +266,12 @@
       color: var(--done);
     }
 
+    .chip.active-orders {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--order-gold);
+      color: #FBBF24;
+    }
+
     .street-filter-select {
       width: 100%;
       background: #151C2B;
@@ -283,7 +285,6 @@
       outline: none;
     }
 
-    /* Houses List */
     .houses-list {
       display: flex;
       flex-direction: column;
@@ -358,7 +359,6 @@
       cursor: pointer;
     }
 
-    /* Badges row */
     .house-badges {
       display: flex;
       flex-wrap: wrap;
@@ -383,13 +383,19 @@
       font-size: 13px;
     }
 
+    .badge-orders {
+      background: rgba(245, 158, 11, 0.15) !important;
+      border-color: rgba(245, 158, 11, 0.4) !important;
+      color: #FBBF24 !important;
+      font-weight: 700;
+    }
+
     .house-card.done .badge {
       background: rgba(16, 185, 129, 0.12);
       border-color: rgba(16, 185, 129, 0.2);
       color: #6EE7B7;
     }
 
-    /* Card Actions */
     .house-actions {
       display: flex;
       gap: 8px;
@@ -424,6 +430,22 @@
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
     }
 
+    .btn-add-order-quick {
+      height: 48px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: var(--radius-sm);
+      color: #FBBF24;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
     .btn-entrance-breakdown {
       width: 48px;
       height: 48px;
@@ -443,7 +465,6 @@
       color: var(--blue);
     }
 
-    /* Entrances panel dropdown */
     .entrances-panel {
       display: none;
       margin-top: 12px;
@@ -493,7 +514,37 @@
       color: #fff;
     }
 
-    /* Floating Add Button */
+    /* Orders list inside card */
+    .house-orders-list {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .house-order-pill {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .house-order-main {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .house-order-details {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
     .fab-add {
       position: fixed;
       right: 20px;
@@ -517,7 +568,6 @@
       transform: scale(0.92);
     }
 
-    /* Bottom Navigation Bar */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -651,7 +701,6 @@
       font-weight: 600;
     }
 
-    /* Stat Cards Grid */
     .stat-cards-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -688,7 +737,59 @@
       margin-top: 2px;
     }
 
-    /* Shift Timer Box */
+    /* Orders Stats Highlight Card */
+    .orders-stat-card {
+      background: linear-gradient(145deg, #241D12 0%, #16151B 100%);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
+    }
+
+    .orders-grid-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .order-mini-box {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .order-mini-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: #FBBF24;
+    }
+
+    .order-mini-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .equipment-chips-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .eq-chip {
+      background: #1C2230;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+    }
+
     .shift-box {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -744,7 +845,6 @@
       color: #fff;
     }
 
-    /* Streets Breakdown */
     .streets-breakdown-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -787,7 +887,6 @@
       border-radius: 3px;
     }
 
-    /* Action Buttons */
     .action-btn-large {
       width: 100%;
       height: 52px;
@@ -1069,7 +1168,32 @@
       gap: 10px;
     }
 
-    /* Toast Notification */
+    /* Order selector chips */
+    .selectable-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .sel-chip {
+      background: #182234;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .sel-chip.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--order-gold);
+      color: #FBBF24;
+    }
+
     .toast-container {
       position: fixed;
       top: 24px;
@@ -1107,7 +1231,7 @@
     <div class="header-top">
       <div class="brand">
         <div class="brand-badge">МТС</div>
-        <div class="brand-title">Мой Район & Отчёт</div>
+        <div class="brand-title">Мой Район & Заявки</div>
       </div>
       <div class="header-actions">
         <button id="shiftTimerBtn" class="shift-timer-btn" onclick="toggleShiftTimer()">
@@ -1149,6 +1273,7 @@
       <button class="chip active" id="filterAll" onclick="setFilter('all')">Все (<span id="countAll">32</span>)</button>
       <button class="chip" id="filterRemain" onclick="setFilter('remain')">Осталось (<span id="countRemain">32</span>)</button>
       <button class="chip" id="filterDone" onclick="setFilter('done')">Пройдено (<span id="countDone">0</span>)</button>
+      <button class="chip" id="filterOrders" onclick="setFilter('orders')">С заявками (<span id="countOrders">0</span>)</button>
     </div>
 
     <!-- Street Filter Dropdown -->
@@ -1164,6 +1289,36 @@
 
   <!-- ==================== SCREEN 2: STATISTICS ==================== -->
   <section id="screenStats" class="screen">
+    <!-- Orders Stats Highlight Card -->
+    <div class="orders-stat-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:800;color:#FBBF24;text-transform:uppercase;letter-spacing:0.5px;">🎯 Заявки и продажи</span>
+        <span id="statOrdersTotalPill" style="background:#F59E0B;color:#000;font-weight:900;font-size:12px;padding:2px 8px;border-radius:10px;">0 заявок</span>
+      </div>
+
+      <div class="orders-grid-row">
+        <div class="order-mini-box">
+          <div id="statOrdersCountVal" class="order-mini-val">0</div>
+          <div class="order-mini-label">Заявок</div>
+        </div>
+        <div class="order-mini-box">
+          <div id="statServicesCountVal" class="order-mini-val">0</div>
+          <div class="order-mini-label">Услуг (1/2)</div>
+        </div>
+        <div class="order-mini-box">
+          <div id="statMnpCountVal" class="order-mini-val">0</div>
+          <div class="order-mini-label">MNP (номера)</div>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--text-muted);font-weight:700;margin-top:10px;">ОБОРУДОВАНИЕ:</div>
+      <div id="statEquipmentList" class="equipment-chips-list">
+        <span class="eq-chip">Роутеры: 0</span>
+        <span class="eq-chip">Приставки: 0</span>
+        <span class="eq-chip">Камеры: 0</span>
+      </div>
+    </div>
+
     <!-- Header Progress Card -->
     <div class="stats-header-card">
       <div class="progress-circle-wrap">
@@ -1222,6 +1377,14 @@
       </div>
     </div>
 
+    <!-- List of All Orders Today -->
+    <div class="portal-vk-card">
+      <div class="card-title">СПИСОК ВСЕХ ЗАЯВОК ЗА СМЕНУ</div>
+      <div id="allOrdersListStats">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
     <!-- Streets Breakdown -->
     <div class="streets-breakdown-card">
       <div class="shift-box-title">Прогресс по улицам</div>
@@ -1239,9 +1402,8 @@
     </button>
   </section>
 
-  <!-- ==================== SCREEN 3: VK & PORTAL REPORT (КЛАССИЧЕСКИЙ ОТЧЁТ) ==================== -->
+  <!-- ==================== SCREEN 3: VK & PORTAL REPORT ==================== -->
   <section id="screenVk" class="screen">
-    <!-- Главное действие: Отправка -->
     <div class="portal-vk-card">
       <div class="card-title">ОТЧЁТ МТС → ВК (С ПОРТАЛА)</div>
       <button class="action-btn-large" style="margin-bottom:8px;" onclick="triggerSendNow()">
@@ -1350,7 +1512,6 @@
 
   <!-- ==================== SCREEN 4: SETTINGS / DATABASE ==================== -->
   <section id="screenSettings" class="screen">
-    <!-- History of Shifts -->
     <div class="portal-vk-card">
       <div class="card-title">ИСТОРИЯ ОБХОДОВ РАЙОНА</div>
       <div id="historyList">
@@ -1358,7 +1519,6 @@
       </div>
     </div>
 
-    <!-- Database Info & Actions -->
     <div class="portal-vk-card">
       <div class="card-title">БАЗА ДОМОВ РАЙОНА</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
@@ -1406,7 +1566,7 @@
     </button>
   </nav>
 
-  <!-- MODAL: ADD / EDIT HOUSE -->
+  <!-- MODAL 1: ADD / EDIT HOUSE -->
   <div id="addModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event)">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -1419,9 +1579,7 @@
       <div class="form-group">
         <label class="form-label">Улица</label>
         <input type="text" id="inputStreet" class="form-input" placeholder="Например: ул. Рябикова" list="streetSuggestions">
-        <datalist id="streetSuggestions">
-          <!-- Filled by JS -->
-        </datalist>
+        <datalist id="streetSuggestions"></datalist>
       </div>
 
       <div class="form-group">
@@ -1454,15 +1612,80 @@
     </div>
   </div>
 
-  <!-- Hidden file input for JSON import -->
+  <!-- MODAL 2: ADD / EDIT ORDER (ЗАЯВКА) -->
+  <div id="orderModal" class="modal-backdrop" onclick="closeOrderModalOnBackdrop(event)">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div>
+          <div id="orderModalTitle" class="modal-title">Новая заявка</div>
+          <div id="orderModalSubtitle" style="font-size:13px;color:var(--text-muted);margin-top:2px;">ул. Рябикова, д. 51</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeOrderModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="orderTargetHouseId">
+      <input type="hidden" id="orderEditId">
+
+      <div class="form-group">
+        <label class="form-label">Квартира</label>
+        <input type="number" id="orderFlatInput" class="form-input" placeholder="Например: 42" min="1">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Номер телефона клиента</label>
+        <input type="tel" id="orderPhoneInput" class="form-input" placeholder="+7 9...">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Сколько услуг завели</label>
+        <div class="selectable-chips">
+          <div class="sel-chip active" id="chipServ1" onclick="selectServicesCount(1)">1 услуга</div>
+          <div class="sel-chip" id="chipServ2" onclick="selectServicesCount(2)">2 услуги</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Количество MNP (переход с номером)</label>
+        <div class="selectable-chips">
+          <div class="sel-chip active" id="chipMnp0" onclick="selectMnpCount(0)">0 MNP</div>
+          <div class="sel-chip" id="chipMnp1" onclick="selectMnpCount(1)">1 MNP</div>
+          <div class="sel-chip" id="chipMnp2" onclick="selectMnpCount(2)">2 MNP</div>
+          <div class="sel-chip" id="chipMnp3" onclick="selectMnpCount(3)">3+ MNP</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Что купили / Оборудование (выберите одно или несколько)</label>
+        <div class="selectable-chips">
+          <div class="sel-chip" id="chipEqRouter" onclick="toggleEquipment('Роутер')">📶 Роутер</div>
+          <div class="sel-chip" id="chipEqTv" onclick="toggleEquipment('Приставка')">📺 Приставка (IPTV)</div>
+          <div class="sel-chip" id="chipEqCam" onclick="toggleEquipment('Камера')">📹 Камера видеонаблюдения</div>
+          <div class="sel-chip" id="chipEqSim" onclick="toggleEquipment('SIM')">📱 SIM / Связь</div>
+          <div class="sel-chip" id="chipEqSmart" onclick="toggleEquipment('Умный дом')">💡 Умный дом</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Заметка / Комментарий (время монтажа, тариф)</label>
+        <input type="text" id="orderCommentInput" class="form-input" placeholder="Например: монтаж в сб после 14:00">
+      </div>
+
+      <button class="action-btn-large" style="background:linear-gradient(135deg,#F59E0B 0%,#D97706 100%);box-shadow:0 4px 16px rgba(245,158,11,0.3);color:#000;" onclick="saveOrder()">
+        💾 Сохранить заявку
+      </button>
+
+      <button id="btnDeleteOrder" class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);display:none;" onclick="deleteCurrentOrder()">
+        Удалить заявку
+      </button>
+    </div>
+  </div>
+
   <input type="file" id="fileInputJson" accept=".json" style="display:none;" onchange="handleFileImport(event)">
 
-  <!-- Toast Container -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- APPLICATION LOGIC -->
   <script>
-    // --- 32 Predefined Houses from User Photo (Ulyanovsk) ---
     const DEFAULT_HOUSES = [
       { id: "h1", street: "2-й Брянский пер.", house: "42", flats: 210, entrances: 3, floors: 14 },
       { id: "h2", street: "ул. Рябикова", house: "51", flats: 144, entrances: 4, floors: 9 },
@@ -1501,7 +1724,7 @@
     // State
     let houses = [];
     let historyRecords = [];
-    let currentFilter = 'all'; // 'all', 'remain', 'done'
+    let currentFilter = 'all'; // 'all', 'remain', 'done', 'orders'
     let currentStreetFilter = '';
     let searchQuery = '';
     let openPanels = new Set();
@@ -1513,6 +1736,11 @@
 
     // VK Settings State
     let vkSelectedDays = new Set([1, 2, 3, 4, 5]);
+
+    // Order Modal State
+    let currentOrderServices = 1;
+    let currentOrderMnp = 0;
+    let currentOrderEquipment = new Set();
 
     // --- Android Bridge Integration & Storage ---
     function callNative(action, arg) {
@@ -1568,9 +1796,15 @@
           visited: false,
           visitedEntrances: 0,
           checkedEntrances: [],
-          visitedAt: null
+          visitedAt: null,
+          orders: []
         }));
         saveState();
+      } else {
+        // Ensure orders array exists on every house
+        houses.forEach(h => {
+          if (!Array.isArray(h.orders)) h.orders = [];
+        });
       }
 
       // Load History
@@ -1603,7 +1837,7 @@
       renderHistory();
     }
 
-    // --- VK Settings & Actions (Классический отчёт) ---
+    // --- VK Settings & Actions ---
     function loadVkSettings() {
       let data = null;
       if (window.AndroidBridge && typeof window.AndroidBridge.getVkSettings === 'function') {
@@ -1613,7 +1847,6 @@
       }
 
       if (!data) {
-        // Fallback to local storage
         const raw = localStorage.getItem('topmts_vk_settings');
         if (raw) {
           try { data = JSON.parse(raw); } catch(e) {}
@@ -1699,7 +1932,6 @@
 
       if (window.AndroidBridge && typeof window.AndroidBridge.saveVkSettings === 'function') {
         window.AndroidBridge.saveVkSettings(JSON.stringify(obj));
-        // refresh status text
         try {
           const fresh = JSON.parse(window.AndroidBridge.getVkSettings());
           if (fresh.statusText) document.getElementById('vkStatusText').innerText = fresh.statusText;
@@ -1744,7 +1976,6 @@
       }
     }
 
-    // Callback called from Android onActivityResult
     window.onChatPicked = function(peer) {
       document.getElementById('vkPeerInput').value = peer;
       saveVkForm(true);
@@ -1766,7 +1997,7 @@
       if (window.AndroidBridge && typeof window.AndroidBridge.sendReportNow === 'function') {
         window.AndroidBridge.sendReportNow(peer, vkHost, calls, template);
       } else {
-        alert('На компьютере запуск через RunnerActivity доступен только внутри Android APK. Скопируйте готовый текст из вкладки «Статистика».');
+        alert('Запуск отправки в ВК через WebView доступен внутри приложения Android.');
       }
     }
 
@@ -1865,6 +2096,7 @@
       document.getElementById('filterAll').className = 'chip ' + (filter === 'all' ? 'active' : '');
       document.getElementById('filterRemain').className = 'chip ' + (filter === 'remain' ? 'active' : '');
       document.getElementById('filterDone').className = 'chip ' + (filter === 'done' ? 'active-done' : '');
+      document.getElementById('filterOrders').className = 'chip ' + (filter === 'orders' ? 'active-orders' : '');
       renderHousesList();
     }
 
@@ -1881,13 +2113,11 @@
 
       doVibrate(50);
       if (house.visited) {
-        // Toggle OFF
         house.visited = false;
         house.visitedEntrances = 0;
         house.checkedEntrances = [];
         house.visitedAt = null;
       } else {
-        // Toggle ON (Full House)
         house.visited = true;
         house.visitedEntrances = house.entrances;
         house.checkedEntrances = Array.from({ length: house.entrances }, (_, i) => i + 1);
@@ -1937,6 +2167,171 @@
       renderHousesList();
     }
 
+    // --- ORDERS LOGIC (ЗАЯВКИ) ---
+    function openAddOrderModal(houseId, orderId = null, event = null) {
+      if (event) event.stopPropagation();
+      doVibrate(30);
+      const house = houses.find(h => h.id === houseId);
+      if (!house) return;
+
+      document.getElementById('orderTargetHouseId').value = houseId;
+      document.getElementById('orderEditId').value = orderId || '';
+      document.getElementById('orderModalSubtitle').innerText = `${house.street}, д. ${house.house}`;
+
+      currentOrderEquipment = new Set();
+
+      if (orderId) {
+        document.getElementById('orderModalTitle').innerText = 'Редактировать заявку';
+        const ord = (house.orders || []).find(o => o.id === orderId);
+        if (ord) {
+          document.getElementById('orderFlatInput').value = ord.flat || '';
+          document.getElementById('orderPhoneInput').value = ord.phone || '';
+          document.getElementById('orderCommentInput').value = ord.comment || '';
+          currentOrderServices = ord.servicesCount || 1;
+          currentOrderMnp = (ord.mnpCount !== undefined) ? ord.mnpCount : 0;
+          if (Array.isArray(ord.equipment)) {
+            ord.equipment.forEach(eq => currentOrderEquipment.add(eq));
+          }
+          document.getElementById('btnDeleteOrder').style.display = 'block';
+        }
+      } else {
+        document.getElementById('orderModalTitle').innerText = 'Новая заявка';
+        document.getElementById('orderFlatInput').value = '';
+        document.getElementById('orderPhoneInput').value = '';
+        document.getElementById('orderCommentInput').value = '';
+        currentOrderServices = 1;
+        currentOrderMnp = 0;
+        document.getElementById('btnDeleteOrder').style.display = 'none';
+      }
+
+      updateOrderFormChips();
+      document.getElementById('orderModal').classList.add('open');
+      setTimeout(() => document.getElementById('orderFlatInput').focus(), 150);
+    }
+
+    function selectServicesCount(num) {
+      doVibrate(20);
+      currentOrderServices = num;
+      updateOrderFormChips();
+    }
+
+    function selectMnpCount(num) {
+      doVibrate(20);
+      currentOrderMnp = num;
+      updateOrderFormChips();
+    }
+
+    function toggleEquipment(item) {
+      doVibrate(20);
+      if (currentOrderEquipment.has(item)) {
+        currentOrderEquipment.delete(item);
+      } else {
+        currentOrderEquipment.add(item);
+      }
+      updateOrderFormChips();
+    }
+
+    function updateOrderFormChips() {
+      document.getElementById('chipServ1').className = 'sel-chip ' + (currentOrderServices === 1 ? 'active' : '');
+      document.getElementById('chipServ2').className = 'sel-chip ' + (currentOrderServices === 2 ? 'active' : '');
+
+      document.getElementById('chipMnp0').className = 'sel-chip ' + (currentOrderMnp === 0 ? 'active' : '');
+      document.getElementById('chipMnp1').className = 'sel-chip ' + (currentOrderMnp === 1 ? 'active' : '');
+      document.getElementById('chipMnp2').className = 'sel-chip ' + (currentOrderMnp === 2 ? 'active' : '');
+      document.getElementById('chipMnp3').className = 'sel-chip ' + (currentOrderMnp >= 3 ? 'active' : '');
+
+      document.getElementById('chipEqRouter').className = 'sel-chip ' + (currentOrderEquipment.has('Роутер') ? 'active' : '');
+      document.getElementById('chipEqTv').className = 'sel-chip ' + (currentOrderEquipment.has('Приставка') ? 'active' : '');
+      document.getElementById('chipEqCam').className = 'sel-chip ' + (currentOrderEquipment.has('Камера') ? 'active' : '');
+      document.getElementById('chipEqSim').className = 'sel-chip ' + (currentOrderEquipment.has('SIM') ? 'active' : '');
+      document.getElementById('chipEqSmart').className = 'sel-chip ' + (currentOrderEquipment.has('Умный дом') ? 'active' : '');
+    }
+
+    function closeOrderModal() {
+      document.getElementById('orderModal').classList.remove('open');
+    }
+
+    function closeOrderModalOnBackdrop(e) {
+      if (e.target.id === 'orderModal') closeOrderModal();
+    }
+
+    function saveOrder() {
+      const houseId = document.getElementById('orderTargetHouseId').value;
+      const orderId = document.getElementById('orderEditId').value;
+      const flat = document.getElementById('orderFlatInput').value.trim();
+      const phone = document.getElementById('orderPhoneInput').value.trim();
+      const comment = document.getElementById('orderCommentInput').value.trim();
+
+      if (!flat || !phone) {
+        alert('Пожалуйста, укажите номер квартиры и телефон клиента.');
+        return;
+      }
+
+      const house = houses.find(h => h.id === houseId);
+      if (!house) return;
+      if (!Array.isArray(house.orders)) house.orders = [];
+
+      doVibrate(50);
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      if (orderId) {
+        const ord = house.orders.find(o => o.id === orderId);
+        if (ord) {
+          ord.flat = flat;
+          ord.phone = phone;
+          ord.servicesCount = currentOrderServices;
+          ord.mnpCount = currentOrderMnp;
+          ord.equipment = Array.from(currentOrderEquipment);
+          ord.comment = comment;
+          showToast(`Заявка кв. ${flat} обновлена!`);
+        }
+      } else {
+        const newOrd = {
+          id: 'ord_' + Date.now(),
+          houseId: houseId,
+          flat: flat,
+          phone: phone,
+          servicesCount: currentOrderServices,
+          mnpCount: currentOrderMnp,
+          equipment: Array.from(currentOrderEquipment),
+          comment: comment,
+          createdAt: timeStr,
+          date: dateStr
+        };
+        house.orders.push(newOrd);
+        // Also mark house done if it was pending
+        if (!house.visited) {
+          house.visited = true;
+          house.visitedEntrances = house.entrances;
+          house.checkedEntrances = Array.from({ length: house.entrances }, (_, i) => i + 1);
+          house.visitedAt = timeStr;
+        }
+        showToast(`Заявка в кв. ${flat} добавлена! 🎉`);
+      }
+
+      saveState();
+      closeOrderModal();
+    }
+
+    function deleteCurrentOrder() {
+      const houseId = document.getElementById('orderTargetHouseId').value;
+      const orderId = document.getElementById('orderEditId').value;
+      if (!houseId || !orderId) return;
+
+      const house = houses.find(h => h.id === houseId);
+      if (!house || !Array.isArray(house.orders)) return;
+
+      if (confirm('Удалить эту заявку?')) {
+        doVibrate(40);
+        house.orders = house.orders.filter(o => o.id !== orderId);
+        saveState();
+        closeOrderModal();
+        showToast('Заявка удалена');
+      }
+    }
+
     // --- Render Functions ---
     function render() {
       updateStreetDropdown();
@@ -1976,10 +2371,12 @@
       const totalCount = houses.length;
       const doneCount = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
       const remainCount = totalCount - doneCount;
+      const ordersCount = houses.reduce((sum, h) => sum + (h.orders ? h.orders.length : 0), 0);
 
       document.getElementById('countAll').innerText = totalCount;
       document.getElementById('countRemain').innerText = remainCount;
       document.getElementById('countDone').innerText = doneCount;
+      document.getElementById('countOrders').innerText = ordersCount;
 
       const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
       document.getElementById('headerProgressFill').style.width = percent + '%';
@@ -1988,6 +2385,7 @@
       let filtered = houses.filter(h => {
         if (currentFilter === 'remain' && (h.visited || h.visitedEntrances > 0)) return false;
         if (currentFilter === 'done' && !(h.visited || h.visitedEntrances > 0)) return false;
+        if (currentFilter === 'orders' && (!h.orders || h.orders.length === 0)) return false;
         if (currentStreetFilter && h.street !== currentStreetFilter) return false;
         if (searchQuery) {
           const matchStreet = h.street.toLowerCase().includes(searchQuery);
@@ -2015,6 +2413,7 @@
         const isOpen = openPanels.has(h.id);
 
         let checkedCount = h.checkedEntrances ? h.checkedEntrances.length : (h.visited ? h.entrances : 0);
+        const houseOrders = h.orders || [];
 
         let entranceChipsHtml = '';
         for (let i = 1; i <= h.entrances; i++) {
@@ -2022,6 +2421,27 @@
           entranceChipsHtml += `
             <div class="entrance-chip ${isChecked ? 'checked' : ''}" onclick="toggleEntrance('${h.id}', ${i}, event)">
               <span>${i}</span>
+            </div>
+          `;
+        }
+
+        // Render mini orders pills inside the house card
+        let ordersListHtml = '';
+        if (houseOrders.length > 0) {
+          ordersListHtml = `
+            <div class="house-orders-list">
+              ${houseOrders.map(ord => {
+                const eqStr = (ord.equipment && ord.equipment.length) ? ' • ' + ord.equipment.join(', ') : '';
+                return `
+                  <div class="house-order-pill" onclick="openAddOrderModal('${h.id}', '${ord.id}', event)">
+                    <div>
+                      <div class="house-order-main">🎯 Кв. ${ord.flat} — 📞 ${ord.phone}</div>
+                      <div class="house-order-details">${ord.servicesCount} усл., MNP: ${ord.mnpCount}${eqStr}</div>
+                    </div>
+                    <span style="font-size:16px;color:var(--order-gold);">✎</span>
+                  </div>
+                `;
+              }).join('')}
             </div>
           `;
         }
@@ -2036,7 +2456,7 @@
                   ${h.visitedAt ? `<span class="house-time-tag">✓ ${h.visitedAt}</span>` : ''}
                 </div>
               </div>
-              <button class="house-card-menu-btn" title="Редактировать" onclick="openEditModal('${h.id}', event)">
+              <button class="house-card-menu-btn" title="Редактировать дом" onclick="openEditModal('${h.id}', event)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
               </button>
             </div>
@@ -2045,6 +2465,7 @@
               <div class="badge"><span class="badge-icon">🚪</span> ${h.entrances} под.</div>
               <div class="badge"><span class="badge-icon">🏠</span> ${h.flats} кв.</div>
               <div class="badge"><span class="badge-icon">🏢</span> ${h.floors} эт.</div>
+              ${houseOrders.length > 0 ? `<div class="badge badge-orders"><span class="badge-icon">🎯</span> ${houseOrders.length} заяв.</div>` : ''}
               ${isPartial ? `<div class="badge" style="color:var(--partial);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1)">⚠️ ${checkedCount}/${h.entrances} под.</div>` : ''}
             </div>
 
@@ -2059,10 +2480,16 @@
                 `}
               </button>
 
+              <button class="btn-add-order-quick" onclick="openAddOrderModal('${h.id}', null, event)" title="Добавить заявку к дому">
+                <span>➕ Заявка</span>
+              </button>
+
               <button class="btn-entrance-breakdown ${isOpen ? 'active' : ''}" title="Выбрать подъезды" onclick="toggleEntrancePanel('${h.id}', event)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
               </button>
             </div>
+
+            ${ordersListHtml}
 
             <div class="entrances-panel ${isOpen ? 'open' : ''}">
               <div class="entrances-panel-title">
@@ -2111,6 +2538,65 @@
       document.getElementById('statFlatsVal').innerText = doneFlats.toLocaleString();
       document.getElementById('statFlatsSub').innerText = `из ${totalFlats.toLocaleString()} охват`;
 
+      // --- Orders Calculations ---
+      let allOrders = [];
+      houses.forEach(h => {
+        if (Array.isArray(h.orders)) {
+          h.orders.forEach(o => allOrders.push({ ...o, street: h.street, houseNum: h.house }));
+        }
+      });
+
+      const totalOrdersCount = allOrders.length;
+      const totalServicesCount = allOrders.reduce((sum, o) => sum + (o.servicesCount || 1), 0);
+      const totalMnpCount = allOrders.reduce((sum, o) => sum + (o.mnpCount || 0), 0);
+
+      const eqMap = { 'Роутер': 0, 'Приставка': 0, 'Камера': 0, 'SIM': 0, 'Умный дом': 0 };
+      allOrders.forEach(o => {
+        if (Array.isArray(o.equipment)) {
+          o.equipment.forEach(item => {
+            if (eqMap[item] !== undefined) eqMap[item]++;
+            else eqMap[item] = (eqMap[item] || 0) + 1;
+          });
+        }
+      });
+
+      document.getElementById('statOrdersTotalPill').innerText = `${totalOrdersCount} ${declOfNum(totalOrdersCount, ['заявка', 'заявки', 'заявок'])}`;
+      document.getElementById('statOrdersCountVal').innerText = totalOrdersCount;
+      document.getElementById('statServicesCountVal').innerText = totalServicesCount;
+      document.getElementById('statMnpCountVal').innerText = totalMnpCount;
+
+      document.getElementById('statEquipmentList').innerHTML = `
+        <span class="eq-chip">📶 Роутеры: <b>${eqMap['Роутер']}</b></span>
+        <span class="eq-chip">📺 Приставки: <b>${eqMap['Приставка']}</b></span>
+        <span class="eq-chip">📹 Камеры: <b>${eqMap['Камера']}</b></span>
+        <span class="eq-chip">📱 SIM: <b>${eqMap['SIM']}</b></span>
+        <span class="eq-chip">💡 Умный дом: <b>${eqMap['Умный дом']}</b></span>
+      `;
+
+      // Render all orders list in stats
+      const ordersContainer = document.getElementById('allOrdersListStats');
+      if (allOrders.length === 0) {
+        ordersContainer.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:8px 0;">Заявок пока нет. Нажмите «➕ Заявка» на карточке любого дома.</div>`;
+      } else {
+        ordersContainer.innerHTML = allOrders.map(o => `
+          <div style="background:#182234;border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-size:14px;font-weight:700;color:#fff;">${escapeHtml(o.street)}, д. ${escapeHtml(o.houseNum)}, кв. ${escapeHtml(o.flat)}</div>
+                <div style="font-size:13px;color:#FBBF24;font-weight:700;margin-top:2px;">📞 ${escapeHtml(o.phone)}</div>
+              </div>
+              <button style="background:transparent;border:none;color:var(--order-gold);font-size:14px;cursor:pointer;" onclick="openAddOrderModal('${o.houseId}', '${o.id}', event)">✎ Изм.</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">
+              Услуг: <b>${o.servicesCount}</b> &nbsp;|&nbsp; MNP: <b>${o.mnpCount}</b>
+              ${(o.equipment && o.equipment.length) ? `&nbsp;|&nbsp; Оборуд: <b>${o.equipment.join(', ')}</b>` : ''}
+            </div>
+            ${o.comment ? `<div style="font-size:11px;color:var(--text-dim);margin-top:4px;font-style:italic;">💬 ${escapeHtml(o.comment)}</div>` : ''}
+          </div>
+        `).join('');
+      }
+
+      // Streets Breakdown
       const streetsMap = {};
       houses.forEach(h => {
         if (!streetsMap[h.street]) streetsMap[h.street] = { total: 0, done: 0 };
@@ -2164,12 +2650,14 @@
     function confirmNewDay() {
       doVibrate(30);
       const doneHouses = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
-      if (doneHouses === 0) {
-        alert('Сегодня ещё не отмечено ни одного дома.');
+      const totalOrders = houses.reduce((s, h) => s + (h.orders ? h.orders.length : 0), 0);
+
+      if (doneHouses === 0 && totalOrders === 0) {
+        alert('Сегодня ещё не отмечено ни одного дома и нет заявок.');
         return;
       }
 
-      if (confirm(`Завершить смену? Пройдено ${doneHouses} домов. Текущие отметки сохранятся в архив истории, а список очистится для нового дня.`)) {
+      if (confirm(`Завершить смену? Пройдено ${doneHouses} домов, оформлено ${totalOrders} заявок. Текущие отметки сохранятся в архив истории, а список очистится для нового дня.`)) {
         const now = new Date();
         const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
         const totalEntrances = houses.reduce((sum, h) => {
@@ -2181,6 +2669,7 @@
           date: dateStr,
           housesCount: doneHouses,
           entrancesCount: totalEntrances,
+          ordersCount: totalOrders,
           timeWorked: formatTimer(shiftSeconds),
           timestamp: Date.now()
         });
@@ -2220,6 +2709,7 @@
           <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px;">📅 ${item.date} — время: ${item.timeWorked || '—'}</div>
           <div style="font-size:12px;color:var(--text-muted);">
             🏠 Домов: <b>${item.housesCount}</b> &nbsp;|&nbsp; 🚪 Подъездов: <b>${item.entrancesCount}</b>
+            ${item.ordersCount ? `&nbsp;|&nbsp; 🎯 Заявок: <b>${item.ordersCount}</b>` : ''}
           </div>
         </div>
       `).join('');
@@ -2308,7 +2798,8 @@
           visited: false,
           visitedEntrances: 0,
           checkedEntrances: [],
-          visitedAt: null
+          visitedAt: null,
+          orders: []
         });
         showToast(`Дом ${street}, ${houseNum} добавлен!`);
       }
@@ -2340,7 +2831,8 @@
           visited: false,
           visitedEntrances: 0,
           checkedEntrances: [],
-          visitedAt: null
+          visitedAt: null,
+          orders: []
         }));
         saveState();
         showToast('База сброшена к исходным адресам');
@@ -2382,6 +2874,7 @@
             houses = parsed.houses;
             if (Array.isArray(parsed.history)) historyRecords = parsed.history;
           }
+          houses.forEach(h => { if (!Array.isArray(h.orders)) h.orders = []; });
           saveState();
           saveHistory();
           showToast('База успешно импортирована!');
@@ -2426,6 +2919,11 @@
 
     // Handle Android Back Button
     window.handleAndroidBack = function() {
+      const orderModal = document.getElementById('orderModal');
+      if (orderModal.classList.contains('open')) {
+        closeOrderModal();
+        return true;
+      }
       const modal = document.getElementById('addModal');
       if (modal.classList.contains('open')) {
         closeModal();
@@ -2451,7 +2949,6 @@
       return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
     }
 
-    // Init on start
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
       render();
