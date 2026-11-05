@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>МТС Район — Обход и Статистика</title>
+  <title>МТС Район — Обход, Портал и ВК</title>
   <style>
     :root {
       --bg-dark: #0A0D14;
@@ -18,6 +18,7 @@
       --done-gradient: linear-gradient(135deg, #10B981 0%, #059669 100%);
       --partial: #F59E0B;
       --blue: #38BDF8;
+      --vk-blue: #2787F5;
       --text: #F1F5F9;
       --text-muted: #94A3B8;
       --text-dim: #64748B;
@@ -48,7 +49,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: rgba(10, 13, 20, 0.92);
+      background: rgba(10, 13, 20, 0.94);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border-color);
@@ -743,12 +744,6 @@
       color: #fff;
     }
 
-    .btn-shift-stop {
-      background: rgba(227, 6, 17, 0.15);
-      border: 1px solid var(--primary);
-      color: #FF5A65;
-    }
-
     /* Streets Breakdown */
     .streets-breakdown-card {
       background: var(--bg-card);
@@ -792,7 +787,7 @@
       border-radius: 3px;
     }
 
-    /* Action Buttons in Stats */
+    /* Action Buttons */
     .action-btn-large {
       width: 100%;
       height: 52px;
@@ -813,23 +808,30 @@
 
     .action-btn-secondary {
       width: 100%;
-      height: 50px;
+      height: 48px;
       border-radius: var(--radius);
       background: #1A2335;
       border: 1px solid var(--border-color);
       color: #fff;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       cursor: pointer;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
-    /* REPORT SCREEN */
-    .report-card {
+    .action-btn-vk {
+      background: linear-gradient(135deg, #2787F5 0%, #1765C1 100%);
+      border: none;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(39, 135, 245, 0.35);
+    }
+
+    /* VK / PORTAL REPORT SCREEN */
+    .portal-vk-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: var(--radius);
@@ -837,59 +839,139 @@
       margin-bottom: 16px;
     }
 
-    .report-textarea {
+    .card-title {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--blue);
+      margin-bottom: 12px;
+    }
+
+    .form-group-vk {
+      margin-bottom: 14px;
+    }
+
+    .form-label-vk {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-input-vk {
       width: 100%;
-      height: 280px;
       background: #0E1420;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
-      padding: 12px;
+      padding: 12px 14px;
       color: #fff;
-      font-family: monospace;
-      font-size: 13px;
-      line-height: 1.5;
-      resize: none;
+      font-size: 14px;
       outline: none;
-      white-space: pre-wrap;
     }
 
-    /* SETTINGS / HISTORY SCREEN */
-    .settings-group {
-      background: var(--bg-card);
+    .form-input-vk:focus {
+      border-color: var(--primary);
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .day-btn {
+      height: 38px;
+      border-radius: 8px;
       border: 1px solid var(--border-color);
-      border-radius: var(--radius);
-      padding: 16px;
-      margin-bottom: 16px;
+      background: #182234;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
     }
 
-    .settings-title {
+    .day-btn.selected {
+      background: var(--primary-gradient);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+
+    .switch-label {
       font-size: 14px;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
     }
 
-    .history-card {
-      background: #182234;
-      border-radius: var(--radius-sm);
-      padding: 12px;
-      margin-bottom: 8px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .history-card-date {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--blue);
-      margin-bottom: 4px;
-    }
-
-    .history-card-stats {
+    .switch-desc {
       font-size: 12px;
       color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .custom-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+    }
+
+    .custom-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #242F46;
+      transition: .3s;
+      border-radius: 28px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: var(--done);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+
+    .status-box-vk {
+      background: #162030;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      border-left: 3px solid var(--blue);
     }
 
     /* MODAL SHEETS */
@@ -1025,7 +1107,7 @@
     <div class="header-top">
       <div class="brand">
         <div class="brand-badge">МТС</div>
-        <div class="brand-title">Мой Район</div>
+        <div class="brand-title">Мой Район & Отчёт</div>
       </div>
       <div class="header-actions">
         <button id="shiftTimerBtn" class="shift-timer-btn" onclick="toggleShiftTimer()">
@@ -1149,42 +1231,136 @@
     </div>
 
     <!-- Actions -->
-    <button class="action-btn-large" onclick="navTo('report')">
-      📋 Сформировать отчёт
+    <button class="action-btn-large" onclick="navTo('vk')">
+      🚀 Перейти к отправке отчёта в ВК
     </button>
     <button class="action-btn-secondary" onclick="confirmNewDay()">
-      🔄 Начать новый обход (сброс)
+      🔄 Начать новый обход (сброс отметок)
     </button>
   </section>
 
-  <!-- ==================== SCREEN 3: REPORT ==================== -->
-  <section id="screenReport" class="screen">
-    <div class="report-card">
-      <div class="settings-title">Готовый текст отчёта</div>
-      <textarea id="reportTextarea" class="report-textarea" readonly></textarea>
+  <!-- ==================== SCREEN 3: VK & PORTAL REPORT (КЛАССИЧЕСКИЙ ОТЧЁТ) ==================== -->
+  <section id="screenVk" class="screen">
+    <!-- Главное действие: Отправка -->
+    <div class="portal-vk-card">
+      <div class="card-title">ОТЧЁТ МТС → ВК (С ПОРТАЛА)</div>
+      <button class="action-btn-large" style="margin-bottom:8px;" onclick="triggerSendNow()">
+        🚀 Собрать с портала и отправить в ВК
+      </button>
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.4;">
+        Приложение зайдёт на <b style="color:#fff;">inventory.ural.mts.ru/pc/agent_day.php</b>, соберёт реальные показатели за сегодня (Подомовой обход, время, ДМХ, звонки) и автоматически отправит готовый отчёт в выбранный чат ВК.
+      </div>
     </div>
 
-    <button class="action-btn-large" onclick="copyReport()">
-      📋 Скопировать в буфер
-    </button>
-    <button class="action-btn-secondary" onclick="shareReport()">
-      🚀 Отправить / Поделиться
-    </button>
+    <!-- Авторизация -->
+    <div class="portal-vk-card">
+      <div class="card-title">ВХОД В АККАУНТЫ (ОДИН РАЗ)</div>
+      <button class="action-btn-secondary" onclick="loginPortal()">
+        🔑 Войти в портал МТС (inventory)
+      </button>
+      <button class="action-btn-secondary action-btn-vk" onclick="loginVk()">
+        💬 Войти в аккаунт ВКонтакте
+      </button>
+    </div>
+
+    <!-- Настройки отправки -->
+    <div class="portal-vk-card">
+      <div class="card-title">КУДА ОТПРАВЛЯТЬ</div>
+
+      <div class="form-group-vk">
+        <label class="form-label-vk">Чат ВКонтакте (ID беседы)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="vkPeerInput" class="form-input-vk" placeholder="Например: c66 или 2000000066">
+          <button class="action-btn-secondary action-btn-vk" style="width:auto;padding:0 14px;white-space:nowrap;margin-bottom:0;" onclick="pickVkChat()">
+            Выбрать чат
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group-vk">
+        <label class="form-label-vk">Домен ВК</label>
+        <input type="text" id="vkHostInput" class="form-input-vk" value="vk.com">
+      </div>
+
+      <div class="form-group-vk">
+        <label class="form-label-vk">Количество звонков за сегодня</label>
+        <input type="number" id="vkCallsInput" class="form-input-vk" value="0">
+      </div>
+    </div>
+
+    <!-- Напоминание по расписанию -->
+    <div class="portal-vk-card">
+      <div class="card-title">НАПОМИНАНИЕ ПО РАСПИСАНИЮ</div>
+
+      <div class="status-box-vk" id="vkStatusText">
+        Загрузка состояния...
+      </div>
+
+      <div class="switch-row">
+        <div>
+          <div class="switch-label">Напоминать отправить отчёт</div>
+          <div class="switch-desc">Будильник пришлёт уведомление в заданное время</div>
+        </div>
+        <label class="custom-switch">
+          <input type="checkbox" id="vkEnabledInput" onchange="saveVkForm()">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="form-group-vk" style="margin-top:14px;">
+        <label class="form-label-vk">Время напоминания</label>
+        <div style="display:flex;gap:8px;">
+          <input type="number" id="vkHourInput" class="form-input-vk" style="text-align:center;font-size:18px;font-weight:700;" min="0" max="23" value="22" onchange="saveVkForm()">
+          <span style="font-size:20px;font-weight:700;align-self:center;">:</span>
+          <input type="number" id="vkMinuteInput" class="form-input-vk" style="text-align:center;font-size:18px;font-weight:700;" min="0" max="59" value="00" onchange="saveVkForm()">
+        </div>
+      </div>
+
+      <div class="form-group-vk">
+        <label class="form-label-vk">Дни недели</label>
+        <div class="days-grid" id="vkDaysGrid">
+          <button class="day-btn selected" data-day="1" onclick="toggleDay(1)">Пн</button>
+          <button class="day-btn selected" data-day="2" onclick="toggleDay(2)">Вт</button>
+          <button class="day-btn selected" data-day="3" onclick="toggleDay(3)">Ср</button>
+          <button class="day-btn selected" data-day="4" onclick="toggleDay(4)">Чт</button>
+          <button class="day-btn selected" data-day="5" onclick="toggleDay(5)">Пт</button>
+          <button class="day-btn" data-day="6" onclick="toggleDay(6)">Сб</button>
+          <button class="day-btn" data-day="7" onclick="toggleDay(7)">Вс</button>
+        </div>
+      </div>
+
+      <button class="action-btn-secondary" style="margin-top:10px;" onclick="testVkNotification()">
+        🔔 Проверить напоминание (через 10 сек)
+      </button>
+
+      <button class="action-btn-secondary" style="background:#202B3E;border-color:var(--done);color:var(--done);" onclick="saveVkForm(true)">
+        💾 Сохранить настройки
+      </button>
+    </div>
+
+    <!-- Шаблон отчёта -->
+    <div class="portal-vk-card">
+      <div class="card-title">ШАБЛОН СООБЩЕНИЯ</div>
+      <textarea id="vkTemplateInput" class="form-input-vk" style="height:170px;font-family:monospace;font-size:12px;line-height:1.4;" onchange="saveVkForm()"></textarea>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:6px;">
+        Доступные переменные: {дата}, {тип дня}, {общее количество дмх}, {поквартирный обход дмх}, {общее время поквартирного обхода}, {визуализация дмх}, {общее время}, {количество звонков}
+      </div>
+    </div>
   </section>
 
   <!-- ==================== SCREEN 4: SETTINGS / DATABASE ==================== -->
   <section id="screenSettings" class="screen">
     <!-- History of Shifts -->
-    <div class="settings-group">
-      <div class="settings-title">📜 История прошлых смен</div>
+    <div class="portal-vk-card">
+      <div class="card-title">ИСТОРИЯ ОБХОДОВ РАЙОНА</div>
       <div id="historyList">
-        <div style="font-size:13px;color:var(--text-muted);">История пока пуста. После нажатия «Начать новый обход» статистика сохраняется сюда.</div>
+        <div style="font-size:13px;color:var(--text-muted);">История пока пуста. После завершения дня статистика сохраняется сюда.</div>
       </div>
     </div>
 
     <!-- Database Info & Actions -->
-    <div class="settings-group">
-      <div class="settings-title">⚙️ Управление базой адресов</div>
+    <div class="portal-vk-card">
+      <div class="card-title">БАЗА ДОМОВ РАЙОНА</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
         Всего домов в базе: <b id="settingsTotalHouses" style="color:#fff;">32</b><br>
         Всего подъездов: <b id="settingsTotalEntrances" style="color:#fff;">173</b><br>
@@ -1200,7 +1376,7 @@
         📥 Импорт базы (JSON)
       </button>
       <button class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);" onclick="confirmResetToDefault()">
-        ⚠️ Сбросить к исходным 32 адресам
+        ⚠️ Сбросить к исходным 32 адресам с фото
       </button>
     </div>
   </section>
@@ -1214,19 +1390,19 @@
   <nav class="bottom-nav">
     <button class="nav-item active" id="navHouses" onclick="navTo('houses')">
       <svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
-      <span>Адреса</span>
+      <span>Район</span>
     </button>
     <button class="nav-item" id="navStats" onclick="navTo('stats')">
       <svg viewBox="0 0 24 24"><path d="M5 19h14v2H3V5h2v14zm4-3H7V9h2v7zm4 0h-2V5h2v11zm4 0h-2v-4h2v4z"/></svg>
       <span>Статистика</span>
     </button>
-    <button class="nav-item" id="navReport" onclick="navTo('report')">
+    <button class="nav-item" id="navVk" onclick="navTo('vk')">
       <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-      <span>Отчёт</span>
+      <span>Отчёт в ВК</span>
     </button>
     <button class="nav-item" id="navSettings" onclick="navTo('settings')">
       <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-      <span>Настройки</span>
+      <span>База</span>
     </button>
   </nav>
 
@@ -1335,6 +1511,9 @@
     let shiftSeconds = 0;
     let isShiftRunning = false;
 
+    // VK Settings State
+    let vkSelectedDays = new Set([1, 2, 3, 4, 5]);
+
     // --- Android Bridge Integration & Storage ---
     function callNative(action, arg) {
       try {
@@ -1359,7 +1538,6 @@
       if (window.AndroidBridge && typeof window.AndroidBridge.toast === 'function') {
         window.AndroidBridge.toast(text);
       }
-      // In-app HTML toast
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
       toast.className = 'toast-msg';
@@ -1373,7 +1551,6 @@
     }
 
     function loadState() {
-      // Try Android storage first, then localStorage
       let raw = callNative('loadFromStorage', 'topmts_houses');
       if (!raw) raw = localStorage.getItem('topmts_houses');
 
@@ -1407,6 +1584,9 @@
       let savedSeconds = localStorage.getItem('topmts_shift_seconds');
       if (savedSeconds) shiftSeconds = parseInt(savedSeconds, 10) || 0;
       updateShiftTimerDisplay();
+
+      // Load VK / Portal Settings
+      loadVkSettings();
     }
 
     function saveState() {
@@ -1421,6 +1601,183 @@
       localStorage.setItem('topmts_history', json);
       callNative('saveToStorage', 'topmts_history', json);
       renderHistory();
+    }
+
+    // --- VK Settings & Actions (Классический отчёт) ---
+    function loadVkSettings() {
+      let data = null;
+      if (window.AndroidBridge && typeof window.AndroidBridge.getVkSettings === 'function') {
+        try {
+          data = JSON.parse(window.AndroidBridge.getVkSettings());
+        } catch(e) {}
+      }
+
+      if (!data) {
+        // Fallback to local storage
+        const raw = localStorage.getItem('topmts_vk_settings');
+        if (raw) {
+          try { data = JSON.parse(raw); } catch(e) {}
+        }
+      }
+
+      if (data) {
+        document.getElementById('vkPeerInput').value = data.peer || '';
+        document.getElementById('vkHostInput').value = data.vkHost || 'vk.com';
+        document.getElementById('vkCallsInput').value = data.calls || '0';
+        document.getElementById('vkEnabledInput').checked = !!data.enabled;
+        document.getElementById('vkHourInput').value = (data.hour !== undefined) ? data.hour : 22;
+        document.getElementById('vkMinuteInput').value = (data.minute !== undefined) ? String(data.minute).padStart(2,'0') : '00';
+        document.getElementById('vkTemplateInput').value = data.template || defaultVkTemplate();
+        if (data.statusText) document.getElementById('vkStatusText').innerText = data.statusText;
+
+        if (Array.isArray(data.days)) {
+          vkSelectedDays = new Set(data.days);
+          renderDaysGrid();
+        }
+      } else {
+        document.getElementById('vkTemplateInput').value = defaultVkTemplate();
+        document.getElementById('vkStatusText').innerText = 'Напоминание выключено';
+      }
+    }
+
+    function defaultVkTemplate() {
+      return [
+        '{дата} {тип дня}',
+        'Общее количество ДМХ: {общее количество дмх}',
+        'Поквартирный обход ДМХ: {поквартирный обход дмх}',
+        'Общее время поквартирного обхода: {общее время поквартирного обхода}',
+        'Визуализация, дмх: {визуализация дмх}',
+        'Общее время визуализации: {общее время визуализации}',
+        'Общее время: {общее время}',
+        'Количество звонков: {количество звонков}'
+      ].join('\n');
+    }
+
+    function toggleDay(dayNum) {
+      doVibrate(20);
+      if (vkSelectedDays.has(dayNum)) {
+        vkSelectedDays.delete(dayNum);
+      } else {
+        vkSelectedDays.add(dayNum);
+      }
+      renderDaysGrid();
+      saveVkForm();
+    }
+
+    function renderDaysGrid() {
+      document.querySelectorAll('#vkDaysGrid .day-btn').forEach(btn => {
+        const d = parseInt(btn.getAttribute('data-day'), 10);
+        if (vkSelectedDays.has(d)) {
+          btn.classList.add('selected');
+        } else {
+          btn.classList.remove('selected');
+        }
+      });
+    }
+
+    function saveVkForm(showFeedback = false) {
+      const peer = document.getElementById('vkPeerInput').value.trim();
+      const vkHost = document.getElementById('vkHostInput').value.trim() || 'vk.com';
+      const calls = document.getElementById('vkCallsInput').value.trim() || '0';
+      const enabled = document.getElementById('vkEnabledInput').checked;
+      const hour = parseInt(document.getElementById('vkHourInput').value, 10) || 22;
+      const minute = parseInt(document.getElementById('vkMinuteInput').value, 10) || 0;
+      const template = document.getElementById('vkTemplateInput').value;
+
+      const obj = {
+        peer: peer,
+        vkHost: vkHost,
+        calls: calls,
+        enabled: enabled,
+        hour: hour,
+        minute: minute,
+        template: template,
+        days: Array.from(vkSelectedDays)
+      };
+
+      localStorage.setItem('topmts_vk_settings', JSON.stringify(obj));
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.saveVkSettings === 'function') {
+        window.AndroidBridge.saveVkSettings(JSON.stringify(obj));
+        // refresh status text
+        try {
+          const fresh = JSON.parse(window.AndroidBridge.getVkSettings());
+          if (fresh.statusText) document.getElementById('vkStatusText').innerText = fresh.statusText;
+        } catch(e) {}
+      }
+
+      if (showFeedback) {
+        doVibrate(40);
+        showToast('Настройки отчёта сохранены!');
+      }
+    }
+
+    function loginPortal() {
+      doVibrate(30);
+      if (window.AndroidBridge && typeof window.AndroidBridge.openLoginPortal === 'function') {
+        window.AndroidBridge.openLoginPortal();
+      } else {
+        window.open('https://inventory.ural.mts.ru/pc/agent_day.php', '_blank');
+      }
+    }
+
+    function loginVk() {
+      doVibrate(30);
+      const host = document.getElementById('vkHostInput').value.trim() || 'vk.com';
+      if (window.AndroidBridge && typeof window.AndroidBridge.openLoginVk === 'function') {
+        window.AndroidBridge.openLoginVk(host);
+      } else {
+        window.open('https://' + host + '/im', '_blank');
+      }
+    }
+
+    function pickVkChat() {
+      doVibrate(30);
+      const host = document.getElementById('vkHostInput').value.trim() || 'vk.com';
+      if (window.AndroidBridge && typeof window.AndroidBridge.pickChat === 'function') {
+        window.AndroidBridge.pickChat(host);
+      } else {
+        const manual = prompt('Введите ID беседы (например, c66):', document.getElementById('vkPeerInput').value);
+        if (manual !== null) {
+          window.onChatPicked(manual);
+        }
+      }
+    }
+
+    // Callback called from Android onActivityResult
+    window.onChatPicked = function(peer) {
+      document.getElementById('vkPeerInput').value = peer;
+      saveVkForm(true);
+    };
+
+    function triggerSendNow() {
+      doVibrate(50);
+      saveVkForm();
+      const peer = document.getElementById('vkPeerInput').value.trim();
+      const vkHost = document.getElementById('vkHostInput').value.trim() || 'vk.com';
+      const calls = document.getElementById('vkCallsInput').value.trim() || '0';
+      const template = document.getElementById('vkTemplateInput').value;
+
+      if (!peer) {
+        alert('Пожалуйста, укажите или выберите чат ВКонтакте.');
+        return;
+      }
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.sendReportNow === 'function') {
+        window.AndroidBridge.sendReportNow(peer, vkHost, calls, template);
+      } else {
+        alert('На компьютере запуск через RunnerActivity доступен только внутри Android APK. Скопируйте готовый текст из вкладки «Статистика».');
+      }
+    }
+
+    function testVkNotification() {
+      doVibrate(30);
+      saveVkForm();
+      if (window.AndroidBridge && typeof window.AndroidBridge.testNotification === 'function') {
+        window.AndroidBridge.testNotification();
+      } else {
+        showToast('Проверочное уведомление (работает на телефоне)');
+      }
     }
 
     // --- Shift Timer ---
@@ -1585,7 +1942,6 @@
       updateStreetDropdown();
       renderHousesList();
       renderStats();
-      renderReport();
       renderSettings();
     }
 
@@ -1617,7 +1973,6 @@
     function renderHousesList() {
       const container = document.getElementById('housesList');
 
-      // Calculate Counts for Filter Chips
       const totalCount = houses.length;
       const doneCount = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
       const remainCount = totalCount - doneCount;
@@ -1626,12 +1981,10 @@
       document.getElementById('countRemain').innerText = remainCount;
       document.getElementById('countDone').innerText = doneCount;
 
-      // Header summary
       const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
       document.getElementById('headerProgressFill').style.width = percent + '%';
       document.getElementById('headerProgressText').innerText = `${doneCount} / ${totalCount} (${percent}%)`;
 
-      // Filter
       let filtered = houses.filter(h => {
         if (currentFilter === 'remain' && (h.visited || h.visitedEntrances > 0)) return false;
         if (currentFilter === 'done' && !(h.visited || h.visitedEntrances > 0)) return false;
@@ -1663,7 +2016,6 @@
 
         let checkedCount = h.checkedEntrances ? h.checkedEntrances.length : (h.visited ? h.entrances : 0);
 
-        // Entrance chips
         let entranceChipsHtml = '';
         for (let i = 1; i <= h.entrances; i++) {
           const isChecked = h.checkedEntrances && h.checkedEntrances.includes(i);
@@ -1733,7 +2085,6 @@
       const remainingHouses = totalHouses - doneHouses;
       const percent = totalHouses > 0 ? Math.round((doneHouses / totalHouses) * 100) : 0;
 
-      // Circle
       const strokeOffset = 283 - (283 * percent) / 100;
       document.getElementById('statCircleBar').style.strokeDashoffset = strokeOffset;
       document.getElementById('statCirclePercent').innerText = percent + '%';
@@ -1741,7 +2092,6 @@
       document.getElementById('statHousesMain').innerText = `${doneHouses} / ${totalHouses}`;
       document.getElementById('statRemainingSub').innerText = `Осталось ${remainingHouses} ${declOfNum(remainingHouses, ['дом', 'дома', 'домов'])}`;
 
-      // Entrances calculation
       const totalEntrances = houses.reduce((sum, h) => sum + h.entrances, 0);
       const doneEntrances = houses.reduce((sum, h) => {
         if (h.visited) return sum + h.entrances;
@@ -1750,12 +2100,10 @@
       document.getElementById('statEntrancesVal').innerText = doneEntrances;
       document.getElementById('statEntrancesSub').innerText = `из ${totalEntrances} (${totalEntrances - doneEntrances} ост.)`;
 
-      // Flats calculation
       const totalFlats = houses.reduce((sum, h) => sum + h.flats, 0);
       const doneFlats = houses.reduce((sum, h) => {
         if (h.visited) return sum + h.flats;
         if (h.checkedEntrances && h.checkedEntrances.length > 0) {
-          // Proportion of flats for partial entrances
           return sum + Math.round((h.flats * h.checkedEntrances.length) / h.entrances);
         }
         return sum;
@@ -1763,7 +2111,6 @@
       document.getElementById('statFlatsVal').innerText = doneFlats.toLocaleString();
       document.getElementById('statFlatsSub').innerText = `из ${totalFlats.toLocaleString()} охват`;
 
-      // Streets Breakdown
       const streetsMap = {};
       houses.forEach(h => {
         if (!streetsMap[h.street]) streetsMap[h.street] = { total: 0, done: 0 };
@@ -1810,90 +2157,6 @@
       } else {
         document.getElementById('statSpeedVal').innerText = '—';
         document.getElementById('statPerHourVal').innerText = '—';
-      }
-    }
-
-    // --- Render Report ---
-    function renderReport() {
-      const totalHouses = houses.length;
-      const doneHouses = houses.filter(h => h.visited || (h.checkedEntrances && h.checkedEntrances.length > 0));
-      const totalEntrances = houses.reduce((sum, h) => sum + h.entrances, 0);
-      const doneEntrances = houses.reduce((sum, h) => {
-        if (h.visited) return sum + h.entrances;
-        return sum + (h.checkedEntrances ? h.checkedEntrances.length : 0);
-      }, 0);
-      const doneFlats = houses.reduce((sum, h) => {
-        if (h.visited) return sum + h.flats;
-        if (h.checkedEntrances && h.checkedEntrances.length > 0) {
-          return sum + Math.round((h.flats * h.checkedEntrances.length) / h.entrances);
-        }
-        return sum;
-      }, 0);
-
-      const now = new Date();
-      const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
-      const timeStr = formatTimer(shiftSeconds);
-
-      // Group completed by street
-      const byStreet = {};
-      doneHouses.forEach(h => {
-        if (!byStreet[h.street]) byStreet[h.street] = [];
-        let info = `д. ${h.house}`;
-        if (!h.visited && h.checkedEntrances && h.checkedEntrances.length > 0) {
-          info += ` (${h.checkedEntrances.length}/${h.entrances} под.)`;
-        }
-        byStreet[h.street].push(info);
-      });
-
-      let streetsReport = '';
-      const streetKeys = Object.keys(byStreet).sort();
-      if (streetKeys.length) {
-        streetsReport = streetKeys.map(s => `• ${s}: ${byStreet[s].join(', ')}`).join('\n');
-      } else {
-        streetsReport = '(Пока нет пройденных адресов)';
-      }
-
-      const percent = totalHouses > 0 ? Math.round((doneHouses.length / totalHouses) * 100) : 0;
-
-      const report = [
-        `📢 Отчёт по расклейке МТС`,
-        `📅 Дата: ${dateStr}`,
-        `⏱ Время на территории: ${timeStr}`,
-        ``,
-        `✅ Пройдено домов: ${doneHouses.length} из ${totalHouses} (${percent}%)`,
-        `🚪 Подъездов поклеено: ${doneEntrances} из ${totalEntrances}`,
-        `🏠 Охвачено квартир (ДМХ): ${doneFlats.toLocaleString()}`,
-        ``,
-        `📍 Пройденные адреса:`,
-        streetsReport
-      ].join('\n');
-
-      document.getElementById('reportTextarea').value = report;
-    }
-
-    function copyReport() {
-      doVibrate(40);
-      const text = document.getElementById('reportTextarea').value;
-      if (window.AndroidBridge && typeof window.AndroidBridge.copyToClipboard === 'function') {
-        window.AndroidBridge.copyToClipboard(text);
-      } else {
-        navigator.clipboard.writeText(text).then(() => {
-          showToast('Отчёт скопирован в буфер!');
-        }).catch(() => {
-          showToast('Скопируйте текст из поля');
-        });
-      }
-    }
-
-    function shareReport() {
-      doVibrate(40);
-      const text = document.getElementById('reportTextarea').value;
-      if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') {
-        window.AndroidBridge.shareText(text);
-      } else if (navigator.share) {
-        navigator.share({ title: 'Отчёт МТС', text: text }).catch(() => {});
-      } else {
-        copyReport();
       }
     }
 
@@ -1953,9 +2216,9 @@
       }
 
       container.innerHTML = historyRecords.map(item => `
-        <div class="history-card">
-          <div class="history-card-date">📅 ${item.date} — время: ${item.timeWorked || '—'}</div>
-          <div class="history-card-stats">
+        <div style="background:#182234;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px;">📅 ${item.date} — время: ${item.timeWorked || '—'}</div>
+          <div style="font-size:12px;color:var(--text-muted);">
             🏠 Домов: <b>${item.housesCount}</b> &nbsp;|&nbsp; 🚪 Подъездов: <b>${item.entrancesCount}</b>
           </div>
         </div>
@@ -2024,7 +2287,6 @@
 
       doVibrate(40);
       if (id) {
-        // Edit
         const house = houses.find(h => h.id === id);
         if (house) {
           house.street = street;
@@ -2035,7 +2297,6 @@
           showToast(`Дом ${street}, ${houseNum} обновлен`);
         }
       } else {
-        // Add new
         const newId = 'h_' + Date.now();
         houses.push({
           id: newId,
@@ -2149,11 +2410,11 @@
         document.getElementById('navStats').classList.add('active');
         fab.style.display = 'none';
         renderStats();
-      } else if (screenId === 'report') {
-        document.getElementById('screenReport').classList.add('active');
-        document.getElementById('navReport').classList.add('active');
+      } else if (screenId === 'vk') {
+        document.getElementById('screenVk').classList.add('active');
+        document.getElementById('navVk').classList.add('active');
         fab.style.display = 'none';
-        renderReport();
+        loadVkSettings();
       } else if (screenId === 'settings') {
         document.getElementById('screenSettings').classList.add('active');
         document.getElementById('navSettings').classList.add('active');
@@ -2175,10 +2436,9 @@
         navTo('houses');
         return true;
       }
-      return false; // Let native activity finish
+      return false;
     };
 
-    // Utilities
     function escapeHtml(str) {
       return String(str || '')
         .replace(/&/g, '&amp;')
