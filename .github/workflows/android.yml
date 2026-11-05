@@ -38,12 +38,17 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Собрать debug APK
+      - name: Собрать подписанный APK
         working-directory: android
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Переименовать APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk otchet-mts-vk.apk
+        run: |
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk otchet-mts-vk.apk
+          else
+            cp android/app/build/outputs/apk/debug/app-debug.apk otchet-mts-vk.apk
+          fi
 
       - name: Выложить APK артефактом
         uses: actions/upload-artifact@v4

@@ -11,13 +11,26 @@ android {
         applicationId 'ru.topmts.report'
         minSdk 24
         targetSdk 34
-        versionCode 16
-        versionName '2.0.0'
+        versionCode 20
+        versionName '2.1.0'
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword 'topmts2026'
+            keyAlias 'topmts'
+            keyPassword 'topmts2026'
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.release
+        }
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 

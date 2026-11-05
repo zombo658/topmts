@@ -1640,6 +1640,21 @@
       </div>
     </div>
 
+        <div class="portal-vk-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="card-title" style="margin-bottom:0;">ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ</div>
+        <span style="font-size:11px;font-weight:800;color:#34D399;background:rgba(16,185,129,0.15);padding:2px 8px;border-radius:10px;">v2.1.0</span>
+      </div>
+      <div style="font-size:13px;color:#fff;line-height:1.45;margin-bottom:10px;">
+        Приложение теперь подписано единым постоянным ключом разработчика.
+        Обновления устанавливаются поверх старой версии <b>в 1 клик без удаления</b> — все пароли от портала, ВК, чат и история домов сохраняются!
+      </div>
+      <div id="updateStatusText" style="font-size:12px;color:var(--text-muted);margin-bottom:10px;"></div>
+      <button class="action-btn-large" style="height:44px;font-size:14px;background:var(--accent-gradient);" onclick="checkAppUpdate(true)">
+        🔄 Проверить и скачать обновление
+      </button>
+    </div>
+
     <div class="portal-vk-card">
       <div class="card-title">БАЗА ДОМОВ РАЙОНА</div>
       <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
@@ -3577,7 +3592,46 @@
             houses = parsed.houses;
             if (Array.isArray(parsed.history)) historyRecords = parsed.history;
           }
-          houses.forEach(h => { if (!Array.isArray(h.orders)) h.orders = []; });
+          houses.forEach(h => { if (!Array.isArray(h.orders)) h.orders = []; if (!Array.isArray(h.pasteHistory)) h.pasteHistory = []; });
+    // --- In-App Updates Checker ---
+    async function checkAppUpdate(userInitiated = false) {
+      const statusEl = document.getElementById('updateStatusText');
+      if (statusEl) statusEl.innerHTML = 'Проверяю наличие обновлений на GitHub...';
+      try {
+        const resp = await fetch('https://api.github.com/repos/zombo658/topmts/releases/latest', { cache: 'no-cache' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const data = await resp.json();
+        const latestTag = data.tag_name || '';
+        const currentTag = 'v2.1.0';
+
+        const apkAsset = data.assets && data.assets.find(a => a.name.endsWith('.apk'));
+        const downloadUrl = apkAsset ? apkAsset.browser_download_url : 'https://github.com/zombo658/topmts/releases/latest/download/otchet-mts-vk.apk';
+
+        if (latestTag && latestTag !== currentTag) {
+          if (statusEl) {
+            statusEl.innerHTML = `🔥 Доступна новая версия <b style="color:#34D399;">${latestTag}</b>!`;
+          }
+          if (confirm(`Найдена новая версия ${latestTag} (текущая: ${currentTag}).\n\nСкачать обновление? Обновление установится поверх, все пароли и дома сохранятся.`)) {
+            window.open(downloadUrl, '_system');
+          }
+        } else {
+          if (statusEl) {
+            statusEl.innerHTML = `✓ У вас установлена самая актуальная версия (${currentTag}).`;
+          }
+          if (userInitiated) {
+            showToast('У вас самая актуальная версия');
+          }
+        }
+      } catch (e) {
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:var(--text-muted);">Не удалось проверить обновление автоматически. Можно скачать напрямую из <a href="https://github.com/zombo658/topmts/releases" target="_blank" style="color:var(--blue);">GitHub Releases</a>.</span>';
+        }
+        if (userInitiated) {
+          window.open('https://github.com/zombo658/topmts/releases', '_system');
+        }
+      }
+    }
+
           saveState();
           saveHistory();
           showToast('База успешно импортирована!');
