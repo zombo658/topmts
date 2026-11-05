@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Тёмная тема на основе системной Material -->
-    <style name="AppTheme" parent="@android:style/Theme.Material">
-        <item name="android:colorPrimary">#0B5BD3</item>
-        <item name="android:colorAccent">#2787F5</item>
-        <item name="android:windowBackground">#0D1117</item>
+    <!-- Тёмная тема на основе системной Material без заголовка окна -->
+    <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">#E30611</item>
+        <item name="android:colorAccent">#10B981</item>
+        <item name="android:windowBackground">#0A0D14</item>
     </style>
 </resources>

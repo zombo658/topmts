@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>МТС Район — Обход и Статистика</title>
+  <style>
+    :root {
+      --bg-dark: #0A0D14;
+      --bg-card: #131926;
+      --bg-card-hover: #1A2234;
+      --bg-card-done: #0D261E;
+      --border-color: #202A3C;
+      --border-done: #10B981;
+      --primary: #E30611;
+      --primary-gradient: linear-gradient(135deg, #FF1E27 0%, #D0000C 100%);
+      --done: #10B981;
+      --done-gradient: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      --partial: #F59E0B;
+      --blue: #38BDF8;
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --text-dim: #64748B;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 84px; /* Space for bottom nav */
+    }
+
+    /* Top Header Bar */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 13, 20, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      background: var(--primary-gradient);
+      color: #fff;
+      font-weight: 900;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 10px rgba(227, 6, 17, 0.4);
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #fff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .shift-timer-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #1A2234;
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--blue);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .shift-timer-btn.active {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--done);
+      color: var(--done);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .shift-timer-btn.active .pulse-dot {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.3); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Mini Progress Header */
+    .header-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #141B28;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .header-summary .progress-label {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-summary .progress-val {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .header-progress-bar {
+      flex: 1;
+      height: 6px;
+      background: #242E42;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 0 4px;
+    }
+
+    .header-progress-fill {
+      height: 100%;
+      background: var(--done-gradient);
+      width: 0%;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Screen Container */
+    .screen {
+      display: none;
+      padding: 16px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Search and Filters */
+    .search-box {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: #151C2B;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 14px 12px 42px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .clear-search-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #242E42;
+      border: none;
+      color: var(--text-muted);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 12px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Chip Filters */
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      scrollbar-width: none;
+    }
+    .filter-chips::-webkit-scrollbar { display: none; }
+
+    .chip {
+      background: #151C2B;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chip.active {
+      background: #242F46;
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .chip.active-done {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--done);
+      color: var(--done);
+    }
+
+    .street-filter-select {
+      width: 100%;
+      background: #151C2B;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      outline: none;
+    }
+
+    /* Houses List */
+    .houses-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .house-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .house-card.done {
+      background: var(--bg-card-done);
+      border-color: rgba(16, 185, 129, 0.6);
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12);
+    }
+
+    .house-card.partial {
+      border-color: rgba(245, 158, 11, 0.5);
+    }
+
+    .house-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .house-address {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .house-street {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .house-num-wrapper {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .house-num {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    .house-time-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--done);
+      background: rgba(16, 185, 129, 0.15);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .house-card-menu-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      padding: 6px;
+      cursor: pointer;
+    }
+
+    /* Badges row */
+    .house-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #1A2335;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .badge-icon {
+      font-size: 13px;
+    }
+
+    .house-card.done .badge {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.2);
+      color: #6EE7B7;
+    }
+
+    /* Card Actions */
+    .house-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-toggle-done {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 48px;
+      background: #1C2638;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-toggle-done:active {
+      transform: scale(0.98);
+    }
+
+    .house-card.done .btn-toggle-done {
+      background: var(--done-gradient);
+      border-color: var(--done);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-entrance-breakdown {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1A2335;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-entrance-breakdown.active {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+
+    /* Entrances panel dropdown */
+    .entrances-panel {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .entrances-panel.open {
+      display: block;
+    }
+
+    .entrances-panel-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .entrance-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .entrance-chip {
+      width: 42px;
+      height: 38px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1A2335;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .entrance-chip.checked {
+      background: var(--done-gradient);
+      border-color: var(--done);
+      color: #fff;
+    }
+
+    /* Floating Add Button */
+    .fab-add {
+      position: fixed;
+      right: 20px;
+      bottom: 96px;
+      z-index: 90;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: var(--primary-gradient);
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(227, 6, 17, 0.5);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .fab-add:active {
+      transform: scale(0.92);
+    }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(13, 17, 26, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      background: transparent;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      gap: 4px;
+      cursor: pointer;
+      padding: 6px 12px;
+      transition: color 0.2s;
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    /* STATS SCREEN */
+    .stats-header-card {
+      background: linear-gradient(145deg, #182236 0%, #121824 100%);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .progress-circle-wrap {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      flex-shrink: 0;
+    }
+
+    .progress-circle-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .progress-circle-bg {
+      fill: none;
+      stroke: #242F46;
+      stroke-width: 8;
+    }
+
+    .progress-circle-bar {
+      fill: none;
+      stroke: url(#statGreen);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-circle-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .progress-percent {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .progress-percent-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stats-main-info {
+      flex: 1;
+    }
+
+    .stats-title {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .stats-big-num {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .stats-subtext {
+      font-size: 13px;
+      color: var(--done);
+      margin-top: 4px;
+      font-weight: 600;
+    }
+
+    /* Stat Cards Grid */
+    .stat-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .stat-card-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-card-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .stat-card-remain {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* Shift Timer Box */
+    .shift-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .shift-box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .shift-box-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .shift-time-display {
+      font-size: 26px;
+      font-family: monospace;
+      font-weight: 800;
+      color: var(--blue);
+      letter-spacing: 1px;
+    }
+
+    .shift-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-shift {
+      flex: 1;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-shift-start {
+      background: var(--done-gradient);
+      color: #fff;
+    }
+
+    .btn-shift-pause {
+      background: #242F46;
+      color: #fff;
+    }
+
+    .btn-shift-stop {
+      background: rgba(227, 6, 17, 0.15);
+      border: 1px solid var(--primary);
+      color: #FF5A65;
+    }
+
+    /* Streets Breakdown */
+    .streets-breakdown-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .streets-list-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .street-stat-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .street-stat-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .street-stat-bar-bg {
+      height: 6px;
+      background: #202A3C;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .street-stat-bar-fill {
+      height: 100%;
+      background: var(--done-gradient);
+      width: 0%;
+      border-radius: 3px;
+    }
+
+    /* Action Buttons in Stats */
+    .action-btn-large {
+      width: 100%;
+      height: 52px;
+      border-radius: var(--radius);
+      background: var(--primary-gradient);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(227, 6, 17, 0.4);
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    .action-btn-secondary {
+      width: 100%;
+      height: 50px;
+      border-radius: var(--radius);
+      background: #1A2335;
+      border: 1px solid var(--border-color);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    /* REPORT SCREEN */
+    .report-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .report-textarea {
+      width: 100%;
+      height: 280px;
+      background: #0E1420;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      color: #fff;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      white-space: pre-wrap;
+    }
+
+    /* SETTINGS / HISTORY SCREEN */
+    .settings-group {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .settings-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-card {
+      background: #182234;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .history-card-date {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+
+    .history-card-stats {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* MODAL SHEETS */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: flex-end;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-sheet {
+      width: 100%;
+      max-height: 85vh;
+      background: #141B29;
+      border-top-left-radius: 24px;
+      border-top-right-radius: 24px;
+      border-top: 1px solid var(--border-color);
+      padding: 20px;
+      overflow-y: auto;
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .modal-close-btn {
+      background: #242F46;
+      border: none;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #0E1420;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+    }
+
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 300;
+      pointer-events: none;
+    }
+
+    .toast-msg {
+      background: rgba(22, 29, 44, 0.95);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      animation: toastPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @keyframes toastPop {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header>
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-badge">МТС</div>
+        <div class="brand-title">Мой Район</div>
+      </div>
+      <div class="header-actions">
+        <button id="shiftTimerBtn" class="shift-timer-btn" onclick="toggleShiftTimer()">
+          <span class="pulse-dot"></span>
+          <span id="shiftTimerText">Старт</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mini Progress -->
+    <div class="header-summary">
+      <span class="progress-label">Пройдено сегодня:</span>
+      <div class="header-progress-bar">
+        <div id="headerProgressFill" class="header-progress-fill"></div>
+      </div>
+      <span id="headerProgressText" class="progress-val">0 / 32 (0%)</span>
+    </div>
+  </header>
+
+  <!-- SVG Definition for circular progress -->
+  <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+    <linearGradient id="statGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </svg>
+
+  <!-- ==================== SCREEN 1: HOUSES LIST ==================== -->
+  <main id="screenHouses" class="screen active">
+    <!-- Search Bar -->
+    <div class="search-box">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchInput" placeholder="Поиск по улице или номеру дома..." oninput="handleSearch(this.value)">
+      <button id="clearSearchBtn" class="clear-search-btn" onclick="clearSearch()">✕</button>
+    </div>
+
+    <!-- Filter Status Chips -->
+    <div class="filter-chips">
+      <button class="chip active" id="filterAll" onclick="setFilter('all')">Все (<span id="countAll">32</span>)</button>
+      <button class="chip" id="filterRemain" onclick="setFilter('remain')">Осталось (<span id="countRemain">32</span>)</button>
+      <button class="chip" id="filterDone" onclick="setFilter('done')">Пройдено (<span id="countDone">0</span>)</button>
+    </div>
+
+    <!-- Street Filter Dropdown -->
+    <select id="streetSelect" class="street-filter-select" onchange="filterByStreet(this.value)">
+      <option value="">Все улицы района</option>
+    </select>
+
+    <!-- Houses List Container -->
+    <div id="housesList" class="houses-list">
+      <!-- House cards rendered here dynamically -->
+    </div>
+  </main>
+
+  <!-- ==================== SCREEN 2: STATISTICS ==================== -->
+  <section id="screenStats" class="screen">
+    <!-- Header Progress Card -->
+    <div class="stats-header-card">
+      <div class="progress-circle-wrap">
+        <svg class="progress-circle-svg" viewBox="0 0 100 100">
+          <circle class="progress-circle-bg" cx="50" cy="50" r="42" />
+          <circle id="statCircleBar" class="progress-circle-bar" cx="50" cy="50" r="42" />
+        </svg>
+        <div class="progress-circle-text">
+          <span id="statCirclePercent" class="progress-percent">0%</span>
+          <span class="progress-percent-sub">обхода</span>
+        </div>
+      </div>
+      <div class="stats-main-info">
+        <div class="stats-title">Прогресс за смену</div>
+        <div id="statHousesMain" class="stats-big-num">0 / 32</div>
+        <div id="statRemainingSub" class="stats-subtext">Осталось 32 дома</div>
+      </div>
+    </div>
+
+    <!-- Stat Grid -->
+    <div class="stat-cards-grid">
+      <div class="stat-card">
+        <div class="stat-card-label">🚪 Подъезды</div>
+        <div id="statEntrancesVal" class="stat-card-val">0</div>
+        <div id="statEntrancesSub" class="stat-card-remain">из 173 поклеено</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-label">🏠 Квартиры (ДМХ)</div>
+        <div id="statFlatsVal" class="stat-card-val">0</div>
+        <div id="statFlatsSub" class="stat-card-remain">из 6 631 охват</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-label">⚡ Скорость</div>
+        <div id="statSpeedVal" class="stat-card-val">—</div>
+        <div class="stat-card-remain">мин на 1 дом</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-card-label">⏱ В час</div>
+        <div id="statPerHourVal" class="stat-card-val">—</div>
+        <div class="stat-card-remain">подъездов / час</div>
+      </div>
+    </div>
+
+    <!-- Shift Timer Card -->
+    <div class="shift-box">
+      <div class="shift-box-header">
+        <div class="shift-box-title">Таймер смены на районе</div>
+        <div id="shiftTimerFullDisplay" class="shift-time-display">00:00:00</div>
+      </div>
+      <div class="shift-controls">
+        <button id="btnShiftAction" class="btn-shift btn-shift-start" onclick="toggleShiftTimer()">Начать смену</button>
+        <button class="btn-shift btn-shift-pause" onclick="resetShiftTimer()">Сбросить</button>
+      </div>
+    </div>
+
+    <!-- Streets Breakdown -->
+    <div class="streets-breakdown-card">
+      <div class="shift-box-title">Прогресс по улицам</div>
+      <div id="streetsBreakdownList" class="streets-list-stats">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <button class="action-btn-large" onclick="navTo('report')">
+      📋 Сформировать отчёт
+    </button>
+    <button class="action-btn-secondary" onclick="confirmNewDay()">
+      🔄 Начать новый обход (сброс)
+    </button>
+  </section>
+
+  <!-- ==================== SCREEN 3: REPORT ==================== -->
+  <section id="screenReport" class="screen">
+    <div class="report-card">
+      <div class="settings-title">Готовый текст отчёта</div>
+      <textarea id="reportTextarea" class="report-textarea" readonly></textarea>
+    </div>
+
+    <button class="action-btn-large" onclick="copyReport()">
+      📋 Скопировать в буфер
+    </button>
+    <button class="action-btn-secondary" onclick="shareReport()">
+      🚀 Отправить / Поделиться
+    </button>
+  </section>
+
+  <!-- ==================== SCREEN 4: SETTINGS / DATABASE ==================== -->
+  <section id="screenSettings" class="screen">
+    <!-- History of Shifts -->
+    <div class="settings-group">
+      <div class="settings-title">📜 История прошлых смен</div>
+      <div id="historyList">
+        <div style="font-size:13px;color:var(--text-muted);">История пока пуста. После нажатия «Начать новый обход» статистика сохраняется сюда.</div>
+      </div>
+    </div>
+
+    <!-- Database Info & Actions -->
+    <div class="settings-group">
+      <div class="settings-title">⚙️ Управление базой адресов</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+        Всего домов в базе: <b id="settingsTotalHouses" style="color:#fff;">32</b><br>
+        Всего подъездов: <b id="settingsTotalEntrances" style="color:#fff;">173</b><br>
+        Всего квартир: <b id="settingsTotalFlats" style="color:#fff;">6 631</b>
+      </div>
+      <button class="action-btn-secondary" onclick="openAddModal()">
+        ➕ Добавить новый дом
+      </button>
+      <button class="action-btn-secondary" onclick="exportDataJson()">
+        💾 Экспорт базы (JSON)
+      </button>
+      <button class="action-btn-secondary" onclick="importDataJson()">
+        📥 Импорт базы (JSON)
+      </button>
+      <button class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);" onclick="confirmResetToDefault()">
+        ⚠️ Сбросить к исходным 32 адресам
+      </button>
+    </div>
+  </section>
+
+  <!-- Floating Add Button on Houses Screen -->
+  <button id="fabAdd" class="fab-add" onclick="openAddModal()" title="Добавить дом">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  </button>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="navHouses" onclick="navTo('houses')">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5z"/></svg>
+      <span>Адреса</span>
+    </button>
+    <button class="nav-item" id="navStats" onclick="navTo('stats')">
+      <svg viewBox="0 0 24 24"><path d="M5 19h14v2H3V5h2v14zm4-3H7V9h2v7zm4 0h-2V5h2v11zm4 0h-2v-4h2v4z"/></svg>
+      <span>Статистика</span>
+    </button>
+    <button class="nav-item" id="navReport" onclick="navTo('report')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+      <span>Отчёт</span>
+    </button>
+    <button class="nav-item" id="navSettings" onclick="navTo('settings')">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      <span>Настройки</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: ADD / EDIT HOUSE -->
+  <div id="addModal" class="modal-backdrop" onclick="closeModalOnBackdrop(event)">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title">Добавить дом в район</div>
+        <button class="modal-close-btn" onclick="closeModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="editHouseId">
+
+      <div class="form-group">
+        <label class="form-label">Улица</label>
+        <input type="text" id="inputStreet" class="form-input" placeholder="Например: ул. Рябикова" list="streetSuggestions">
+        <datalist id="streetSuggestions">
+          <!-- Filled by JS -->
+        </datalist>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Номер дома</label>
+        <input type="text" id="inputHouse" class="form-input" placeholder="Например: 51, 27а, 61/37">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Подъездов</label>
+          <input type="number" id="inputEntrances" class="form-input" value="4" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Квартир</label>
+          <input type="number" id="inputFlats" class="form-input" value="144" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Этажей</label>
+          <input type="number" id="inputFloors" class="form-input" value="9" min="1">
+        </div>
+      </div>
+
+      <button id="btnSaveHouse" class="action-btn-large" style="margin-top:10px;" onclick="saveHouse()">
+        Сохранить дом
+      </button>
+
+      <button id="btnDeleteHouse" class="action-btn-secondary" style="color:#FF5A65;border-color:rgba(227,6,17,0.3);display:none;" onclick="deleteCurrentHouse()">
+        Удалить этот дом
+      </button>
+    </div>
+  </div>
+
+  <!-- Hidden file input for JSON import -->
+  <input type="file" id="fileInputJson" accept=".json" style="display:none;" onchange="handleFileImport(event)">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // --- 32 Predefined Houses from User Photo (Ulyanovsk) ---
+    const DEFAULT_HOUSES = [
+      { id: "h1", street: "2-й Брянский пер.", house: "42", flats: 210, entrances: 3, floors: 14 },
+      { id: "h2", street: "ул. Рябикова", house: "51", flats: 144, entrances: 4, floors: 9 },
+      { id: "h3", street: "ул. Рябикова", house: "61/37", flats: 553, entrances: 14, floors: 9 },
+      { id: "h4", street: "ул. Жигулевская", house: "17", flats: 58, entrances: 1, floors: 12 },
+      { id: "h5", street: "ул. Жигулевская", house: "36", flats: 72, entrances: 2, floors: 9 },
+      { id: "h6", street: "ул. Жигулевская", house: "70", flats: 30, entrances: 2, floors: 5 },
+      { id: "h7", street: "ул. Камышинская", house: "15", flats: 454, entrances: 12, floors: 12 },
+      { id: "h8", street: "ул. Камышинская", house: "25 к.1", flats: 99, entrances: 3, floors: 10 },
+      { id: "h9", street: "ул. Камышинская", house: "27", flats: 320, entrances: 7, floors: 10 },
+      { id: "h10", street: "ул. Корунковой", house: "19", flats: 180, entrances: 5, floors: 9 },
+      { id: "h11", street: "ул. Кузоватовская", house: "12 к.3", flats: 368, entrances: 8, floors: 10 },
+      { id: "h12", street: "ул. Рябикова", house: "27", flats: 216, entrances: 6, floors: 9 },
+      { id: "h13", street: "ул. Рябикова", house: "27а", flats: 123, entrances: 8, floors: 5 },
+      { id: "h14", street: "ул. Рябикова", house: "43", flats: 108, entrances: 3, floors: 9 },
+      { id: "h15", street: "ул. Рябикова", house: "47", flats: 310, entrances: 8, floors: 9 },
+      { id: "h16", street: "ул. Рябикова", house: "49", flats: 180, entrances: 4, floors: 10 },
+      { id: "h17", street: "ул. Самарская", house: "13", flats: 129, entrances: 3, floors: 10 },
+      { id: "h18", street: "ул. Жигулевская", house: "19", flats: 288, entrances: 8, floors: 9 },
+      { id: "h19", street: "ул. Жигулевская", house: "66", flats: 72, entrances: 2, floors: 9 },
+      { id: "h20", street: "ул. Камышинская", house: "17", flats: 216, entrances: 6, floors: 9 },
+      { id: "h21", street: "ул. Камышинская", house: "21", flats: 324, entrances: 9, floors: 9 },
+      { id: "h22", street: "ул. Камышинская", house: "25", flats: 346, entrances: 8, floors: 10 },
+      { id: "h23", street: "ул. Камышинская", house: "35", flats: 144, entrances: 4, floors: 9 },
+      { id: "h24", street: "ул. Корунковой", house: "12", flats: 180, entrances: 5, floors: 9 },
+      { id: "h25", street: "ул. Рябикова", house: "39", flats: 216, entrances: 6, floors: 9 },
+      { id: "h26", street: "ул. Самарская", house: "5", flats: 239, entrances: 5, floors: 10 },
+      { id: "h27", street: "ул. Самарская", house: "6", flats: 180, entrances: 4, floors: 10 },
+      { id: "h28", street: "ул. Самарская", house: "10", flats: 60, entrances: 4, floors: 5 },
+      { id: "h29", street: "ул. Самарская", house: "11", flats: 405, entrances: 9, floors: 10 },
+      { id: "h30", street: "ул. Самарская", house: "15", flats: 103, entrances: 3, floors: 6 },
+      { id: "h31", street: "ул. Фруктовая", house: "9", flats: 160, entrances: 3, floors: 10 },
+      { id: "h32", street: "ул. Шолмова", house: "23", flats: 144, entrances: 4, floors: 9 }
+    ];
+
+    // State
+    let houses = [];
+    let historyRecords = [];
+    let currentFilter = 'all'; // 'all', 'remain', 'done'
+    let currentStreetFilter = '';
+    let searchQuery = '';
+    let openPanels = new Set();
+
+    // Timer State
+    let shiftTimerInterval = null;
+    let shiftSeconds = 0;
+    let isShiftRunning = false;
+
+    // --- Android Bridge Integration & Storage ---
+    function callNative(action, arg) {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge[action] === 'function') {
+          return window.AndroidBridge[action](arg);
+        }
+      } catch (e) {
+        console.warn('Native bridge error:', e);
+      }
+      return null;
+    }
+
+    function doVibrate(ms = 40) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
+        window.AndroidBridge.vibrate(ms);
+      } else if (navigator.vibrate) {
+        navigator.vibrate(ms);
+      }
+    }
+
+    function showToast(text) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.toast === 'function') {
+        window.AndroidBridge.toast(text);
+      }
+      // In-app HTML toast
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast-msg';
+      toast.innerHTML = `<span>✓</span> <span>${text}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    function loadState() {
+      // Try Android storage first, then localStorage
+      let raw = callNative('loadFromStorage', 'topmts_houses');
+      if (!raw) raw = localStorage.getItem('topmts_houses');
+
+      if (raw) {
+        try {
+          houses = JSON.parse(raw);
+        } catch (e) {
+          houses = [];
+        }
+      }
+
+      if (!houses || !houses.length) {
+        houses = DEFAULT_HOUSES.map(h => ({
+          ...h,
+          visited: false,
+          visitedEntrances: 0,
+          checkedEntrances: [],
+          visitedAt: null
+        }));
+        saveState();
+      }
+
+      // Load History
+      let histRaw = callNative('loadFromStorage', 'topmts_history');
+      if (!histRaw) histRaw = localStorage.getItem('topmts_history');
+      if (histRaw) {
+        try { historyRecords = JSON.parse(histRaw); } catch(e) { historyRecords = []; }
+      }
+
+      // Load Timer
+      let savedSeconds = localStorage.getItem('topmts_shift_seconds');
+      if (savedSeconds) shiftSeconds = parseInt(savedSeconds, 10) || 0;
+      updateShiftTimerDisplay();
+    }
+
+    function saveState() {
+      const json = JSON.stringify(houses);
+      localStorage.setItem('topmts_houses', json);
+      callNative('saveToStorage', 'topmts_houses', json);
+      render();
+    }
+
+    function saveHistory() {
+      const json = JSON.stringify(historyRecords);
+      localStorage.setItem('topmts_history', json);
+      callNative('saveToStorage', 'topmts_history', json);
+      renderHistory();
+    }
+
+    // --- Shift Timer ---
+    function toggleShiftTimer() {
+      doVibrate(30);
+      if (isShiftRunning) {
+        clearInterval(shiftTimerInterval);
+        shiftTimerInterval = null;
+        isShiftRunning = false;
+        document.getElementById('shiftTimerBtn').classList.remove('active');
+        document.getElementById('shiftTimerText').innerText = formatTimer(shiftSeconds);
+        document.getElementById('btnShiftAction').innerText = 'Продолжить смену';
+        document.getElementById('btnShiftAction').className = 'btn-shift btn-shift-start';
+        showToast('Смена приостановлена');
+      } else {
+        isShiftRunning = true;
+        document.getElementById('shiftTimerBtn').classList.add('active');
+        document.getElementById('btnShiftAction').innerText = 'Пауза';
+        document.getElementById('btnShiftAction').className = 'btn-shift btn-shift-pause';
+        shiftTimerInterval = setInterval(() => {
+          shiftSeconds++;
+          updateShiftTimerDisplay();
+          localStorage.setItem('topmts_shift_seconds', shiftSeconds);
+        }, 1000);
+        showToast('Смена начата');
+      }
+    }
+
+    function resetShiftTimer() {
+      if (confirm('Сбросить таймер смены?')) {
+        clearInterval(shiftTimerInterval);
+        shiftTimerInterval = null;
+        isShiftRunning = false;
+        shiftSeconds = 0;
+        localStorage.setItem('topmts_shift_seconds', '0');
+        document.getElementById('shiftTimerBtn').classList.remove('active');
+        document.getElementById('shiftTimerText').innerText = 'Старт';
+        document.getElementById('btnShiftAction').innerText = 'Начать смену';
+        document.getElementById('btnShiftAction').className = 'btn-shift btn-shift-start';
+        updateShiftTimerDisplay();
+        showToast('Таймер сброшен');
+      }
+    }
+
+    function formatTimer(totalSec) {
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (h > 0) {
+        return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function formatFullTimer(totalSec) {
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+
+    function updateShiftTimerDisplay() {
+      document.getElementById('shiftTimerText').innerText = isShiftRunning ? formatTimer(shiftSeconds) : (shiftSeconds > 0 ? formatTimer(shiftSeconds) : 'Старт');
+      document.getElementById('shiftTimerFullDisplay').innerText = formatFullTimer(shiftSeconds);
+      calculateSpeedMetrics();
+    }
+
+    // --- Search & Filters ---
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      document.getElementById('clearSearchBtn').style.display = searchQuery ? 'flex' : 'none';
+      renderHousesList();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      renderHousesList();
+    }
+
+    function setFilter(filter) {
+      doVibrate(20);
+      currentFilter = filter;
+      document.getElementById('filterAll').className = 'chip ' + (filter === 'all' ? 'active' : '');
+      document.getElementById('filterRemain').className = 'chip ' + (filter === 'remain' ? 'active' : '');
+      document.getElementById('filterDone').className = 'chip ' + (filter === 'done' ? 'active-done' : '');
+      renderHousesList();
+    }
+
+    function filterByStreet(street) {
+      currentStreetFilter = street;
+      renderHousesList();
+    }
+
+    // --- Toggle Visited Status ---
+    function toggleHouseDone(id, event) {
+      if (event) event.stopPropagation();
+      const house = houses.find(h => h.id === id);
+      if (!house) return;
+
+      doVibrate(50);
+      if (house.visited) {
+        // Toggle OFF
+        house.visited = false;
+        house.visitedEntrances = 0;
+        house.checkedEntrances = [];
+        house.visitedAt = null;
+      } else {
+        // Toggle ON (Full House)
+        house.visited = true;
+        house.visitedEntrances = house.entrances;
+        house.checkedEntrances = Array.from({ length: house.entrances }, (_, i) => i + 1);
+        const now = new Date();
+        house.visitedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      }
+
+      saveState();
+      showToast(house.visited ? `${house.street}, ${house.house} пройден!` : `Отметка снята`);
+    }
+
+    function toggleEntrance(houseId, entranceNum, event) {
+      if (event) event.stopPropagation();
+      const house = houses.find(h => h.id === houseId);
+      if (!house) return;
+
+      doVibrate(30);
+      if (!house.checkedEntrances) house.checkedEntrances = [];
+      const idx = house.checkedEntrances.indexOf(entranceNum);
+      if (idx >= 0) {
+        house.checkedEntrances.splice(idx, 1);
+      } else {
+        house.checkedEntrances.push(entranceNum);
+      }
+
+      house.visitedEntrances = house.checkedEntrances.length;
+      house.visited = (house.visitedEntrances === house.entrances);
+
+      if (house.visitedEntrances > 0 && !house.visitedAt) {
+        const now = new Date();
+        house.visitedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      } else if (house.visitedEntrances === 0) {
+        house.visitedAt = null;
+      }
+
+      saveState();
+    }
+
+    function toggleEntrancePanel(houseId, event) {
+      if (event) event.stopPropagation();
+      doVibrate(20);
+      if (openPanels.has(houseId)) {
+        openPanels.delete(houseId);
+      } else {
+        openPanels.add(houseId);
+      }
+      renderHousesList();
+    }
+
+    // --- Render Functions ---
+    function render() {
+      updateStreetDropdown();
+      renderHousesList();
+      renderStats();
+      renderReport();
+      renderSettings();
+    }
+
+    function updateStreetDropdown() {
+      const select = document.getElementById('streetSelect');
+      const datalist = document.getElementById('streetSuggestions');
+      const streetsSet = new Set(houses.map(h => h.street));
+      const streets = Array.from(streetsSet).sort();
+
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">Все улицы района (' + streets.length + ')</option>';
+      datalist.innerHTML = '';
+
+      streets.forEach(street => {
+        const count = houses.filter(h => h.street === street).length;
+        const opt = document.createElement('option');
+        opt.value = street;
+        opt.textContent = `${street} (${count})`;
+        select.appendChild(opt);
+
+        const dataOpt = document.createElement('option');
+        dataOpt.value = street;
+        datalist.appendChild(dataOpt);
+      });
+
+      select.value = currentVal;
+    }
+
+    function renderHousesList() {
+      const container = document.getElementById('housesList');
+
+      // Calculate Counts for Filter Chips
+      const totalCount = houses.length;
+      const doneCount = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
+      const remainCount = totalCount - doneCount;
+
+      document.getElementById('countAll').innerText = totalCount;
+      document.getElementById('countRemain').innerText = remainCount;
+      document.getElementById('countDone').innerText = doneCount;
+
+      // Header summary
+      const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+      document.getElementById('headerProgressFill').style.width = percent + '%';
+      document.getElementById('headerProgressText').innerText = `${doneCount} / ${totalCount} (${percent}%)`;
+
+      // Filter
+      let filtered = houses.filter(h => {
+        if (currentFilter === 'remain' && (h.visited || h.visitedEntrances > 0)) return false;
+        if (currentFilter === 'done' && !(h.visited || h.visitedEntrances > 0)) return false;
+        if (currentStreetFilter && h.street !== currentStreetFilter) return false;
+        if (searchQuery) {
+          const matchStreet = h.street.toLowerCase().includes(searchQuery);
+          const matchHouse = h.house.toLowerCase().includes(searchQuery);
+          if (!matchStreet && !matchHouse) return false;
+        }
+        return true;
+      });
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:40px 16px;color:var(--text-muted);">
+            <div style="font-size:36px;margin-bottom:12px;">🔍</div>
+            <div style="font-size:16px;font-weight:700;color:#fff;">Дома не найдены</div>
+            <div style="font-size:13px;margin-top:6px;">Попробуйте изменить запрос или фильтр</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(h => {
+        const isDone = h.visited || (h.visitedEntrances === h.entrances);
+        const isPartial = !isDone && h.visitedEntrances > 0;
+        const cardClass = isDone ? 'house-card done' : (isPartial ? 'house-card partial' : 'house-card');
+        const isOpen = openPanels.has(h.id);
+
+        let checkedCount = h.checkedEntrances ? h.checkedEntrances.length : (h.visited ? h.entrances : 0);
+
+        // Entrance chips
+        let entranceChipsHtml = '';
+        for (let i = 1; i <= h.entrances; i++) {
+          const isChecked = h.checkedEntrances && h.checkedEntrances.includes(i);
+          entranceChipsHtml += `
+            <div class="entrance-chip ${isChecked ? 'checked' : ''}" onclick="toggleEntrance('${h.id}', ${i}, event)">
+              <span>${i}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="${cardClass}" onclick="openEditModal('${h.id}')">
+            <div class="house-card-top">
+              <div class="house-address">
+                <span class="house-street">${escapeHtml(h.street)}</span>
+                <div class="house-num-wrapper">
+                  <span class="house-num">д. ${escapeHtml(h.house)}</span>
+                  ${h.visitedAt ? `<span class="house-time-tag">✓ ${h.visitedAt}</span>` : ''}
+                </div>
+              </div>
+              <button class="house-card-menu-btn" title="Редактировать" onclick="openEditModal('${h.id}', event)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+              </button>
+            </div>
+
+            <div class="house-badges">
+              <div class="badge"><span class="badge-icon">🚪</span> ${h.entrances} под.</div>
+              <div class="badge"><span class="badge-icon">🏠</span> ${h.flats} кв.</div>
+              <div class="badge"><span class="badge-icon">🏢</span> ${h.floors} эт.</div>
+              ${isPartial ? `<div class="badge" style="color:var(--partial);border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.1)">⚠️ ${checkedCount}/${h.entrances} под.</div>` : ''}
+            </div>
+
+            <div class="house-actions">
+              <button class="btn-toggle-done" onclick="toggleHouseDone('${h.id}', event)">
+                ${isDone ? `
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Пройден</span>
+                ` : `
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                  <span>Отметить</span>
+                `}
+              </button>
+
+              <button class="btn-entrance-breakdown ${isOpen ? 'active' : ''}" title="Выбрать подъезды" onclick="toggleEntrancePanel('${h.id}', event)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div class="entrances-panel ${isOpen ? 'open' : ''}">
+              <div class="entrances-panel-title">
+                <span>Отметка по подъездам:</span>
+                <span>${checkedCount} из ${h.entrances}</span>
+              </div>
+              <div class="entrance-chips">
+                ${entranceChipsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- Render Stats ---
+    function renderStats() {
+      const totalHouses = houses.length;
+      const doneHouses = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
+      const remainingHouses = totalHouses - doneHouses;
+      const percent = totalHouses > 0 ? Math.round((doneHouses / totalHouses) * 100) : 0;
+
+      // Circle
+      const strokeOffset = 283 - (283 * percent) / 100;
+      document.getElementById('statCircleBar').style.strokeDashoffset = strokeOffset;
+      document.getElementById('statCirclePercent').innerText = percent + '%';
+
+      document.getElementById('statHousesMain').innerText = `${doneHouses} / ${totalHouses}`;
+      document.getElementById('statRemainingSub').innerText = `Осталось ${remainingHouses} ${declOfNum(remainingHouses, ['дом', 'дома', 'домов'])}`;
+
+      // Entrances calculation
+      const totalEntrances = houses.reduce((sum, h) => sum + h.entrances, 0);
+      const doneEntrances = houses.reduce((sum, h) => {
+        if (h.visited) return sum + h.entrances;
+        return sum + (h.checkedEntrances ? h.checkedEntrances.length : 0);
+      }, 0);
+      document.getElementById('statEntrancesVal').innerText = doneEntrances;
+      document.getElementById('statEntrancesSub').innerText = `из ${totalEntrances} (${totalEntrances - doneEntrances} ост.)`;
+
+      // Flats calculation
+      const totalFlats = houses.reduce((sum, h) => sum + h.flats, 0);
+      const doneFlats = houses.reduce((sum, h) => {
+        if (h.visited) return sum + h.flats;
+        if (h.checkedEntrances && h.checkedEntrances.length > 0) {
+          // Proportion of flats for partial entrances
+          return sum + Math.round((h.flats * h.checkedEntrances.length) / h.entrances);
+        }
+        return sum;
+      }, 0);
+      document.getElementById('statFlatsVal').innerText = doneFlats.toLocaleString();
+      document.getElementById('statFlatsSub').innerText = `из ${totalFlats.toLocaleString()} охват`;
+
+      // Streets Breakdown
+      const streetsMap = {};
+      houses.forEach(h => {
+        if (!streetsMap[h.street]) streetsMap[h.street] = { total: 0, done: 0 };
+        streetsMap[h.street].total++;
+        if (h.visited || h.visitedEntrances > 0) streetsMap[h.street].done++;
+      });
+
+      const breakdownContainer = document.getElementById('streetsBreakdownList');
+      breakdownContainer.innerHTML = Object.keys(streetsMap).sort().map(street => {
+        const item = streetsMap[street];
+        const sPercent = item.total > 0 ? Math.round((item.done / item.total) * 100) : 0;
+        return `
+          <div class="street-stat-row">
+            <div class="street-stat-info">
+              <span>${escapeHtml(street)}</span>
+              <span><b>${item.done}</b> / ${item.total} (${sPercent}%)</span>
+            </div>
+            <div class="street-stat-bar-bg">
+              <div class="street-stat-bar-fill" style="width:${sPercent}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      calculateSpeedMetrics();
+    }
+
+    function calculateSpeedMetrics() {
+      const doneHouses = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
+      const doneEntrances = houses.reduce((sum, h) => {
+        if (h.visited) return sum + h.entrances;
+        return sum + (h.checkedEntrances ? h.checkedEntrances.length : 0);
+      }, 0);
+
+      if (shiftSeconds >= 60 && doneHouses > 0) {
+        const secPerHouse = Math.round(shiftSeconds / doneHouses);
+        const m = Math.floor(secPerHouse / 60);
+        const s = secPerHouse % 60;
+        document.getElementById('statSpeedVal').innerText = `${m}м ${s}с`;
+
+        const hours = shiftSeconds / 3600;
+        const entrancesPerHour = Math.round(doneEntrances / hours);
+        document.getElementById('statPerHourVal').innerText = entrancesPerHour;
+      } else {
+        document.getElementById('statSpeedVal').innerText = '—';
+        document.getElementById('statPerHourVal').innerText = '—';
+      }
+    }
+
+    // --- Render Report ---
+    function renderReport() {
+      const totalHouses = houses.length;
+      const doneHouses = houses.filter(h => h.visited || (h.checkedEntrances && h.checkedEntrances.length > 0));
+      const totalEntrances = houses.reduce((sum, h) => sum + h.entrances, 0);
+      const doneEntrances = houses.reduce((sum, h) => {
+        if (h.visited) return sum + h.entrances;
+        return sum + (h.checkedEntrances ? h.checkedEntrances.length : 0);
+      }, 0);
+      const doneFlats = houses.reduce((sum, h) => {
+        if (h.visited) return sum + h.flats;
+        if (h.checkedEntrances && h.checkedEntrances.length > 0) {
+          return sum + Math.round((h.flats * h.checkedEntrances.length) / h.entrances);
+        }
+        return sum;
+      }, 0);
+
+      const now = new Date();
+      const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+      const timeStr = formatTimer(shiftSeconds);
+
+      // Group completed by street
+      const byStreet = {};
+      doneHouses.forEach(h => {
+        if (!byStreet[h.street]) byStreet[h.street] = [];
+        let info = `д. ${h.house}`;
+        if (!h.visited && h.checkedEntrances && h.checkedEntrances.length > 0) {
+          info += ` (${h.checkedEntrances.length}/${h.entrances} под.)`;
+        }
+        byStreet[h.street].push(info);
+      });
+
+      let streetsReport = '';
+      const streetKeys = Object.keys(byStreet).sort();
+      if (streetKeys.length) {
+        streetsReport = streetKeys.map(s => `• ${s}: ${byStreet[s].join(', ')}`).join('\n');
+      } else {
+        streetsReport = '(Пока нет пройденных адресов)';
+      }
+
+      const percent = totalHouses > 0 ? Math.round((doneHouses.length / totalHouses) * 100) : 0;
+
+      const report = [
+        `📢 Отчёт по расклейке МТС`,
+        `📅 Дата: ${dateStr}`,
+        `⏱ Время на территории: ${timeStr}`,
+        ``,
+        `✅ Пройдено домов: ${doneHouses.length} из ${totalHouses} (${percent}%)`,
+        `🚪 Подъездов поклеено: ${doneEntrances} из ${totalEntrances}`,
+        `🏠 Охвачено квартир (ДМХ): ${doneFlats.toLocaleString()}`,
+        ``,
+        `📍 Пройденные адреса:`,
+        streetsReport
+      ].join('\n');
+
+      document.getElementById('reportTextarea').value = report;
+    }
+
+    function copyReport() {
+      doVibrate(40);
+      const text = document.getElementById('reportTextarea').value;
+      if (window.AndroidBridge && typeof window.AndroidBridge.copyToClipboard === 'function') {
+        window.AndroidBridge.copyToClipboard(text);
+      } else {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('Отчёт скопирован в буфер!');
+        }).catch(() => {
+          showToast('Скопируйте текст из поля');
+        });
+      }
+    }
+
+    function shareReport() {
+      doVibrate(40);
+      const text = document.getElementById('reportTextarea').value;
+      if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') {
+        window.AndroidBridge.shareText(text);
+      } else if (navigator.share) {
+        navigator.share({ title: 'Отчёт МТС', text: text }).catch(() => {});
+      } else {
+        copyReport();
+      }
+    }
+
+    // --- Shift Reset / New Day ---
+    function confirmNewDay() {
+      doVibrate(30);
+      const doneHouses = houses.filter(h => h.visited || h.visitedEntrances > 0).length;
+      if (doneHouses === 0) {
+        alert('Сегодня ещё не отмечено ни одного дома.');
+        return;
+      }
+
+      if (confirm(`Завершить смену? Пройдено ${doneHouses} домов. Текущие отметки сохранятся в архив истории, а список очистится для нового дня.`)) {
+        const now = new Date();
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
+        const totalEntrances = houses.reduce((sum, h) => {
+          if (h.visited) return sum + h.entrances;
+          return sum + (h.checkedEntrances ? h.checkedEntrances.length : 0);
+        }, 0);
+
+        historyRecords.unshift({
+          date: dateStr,
+          housesCount: doneHouses,
+          entrancesCount: totalEntrances,
+          timeWorked: formatTimer(shiftSeconds),
+          timestamp: Date.now()
+        });
+        saveHistory();
+
+        // Reset houses
+        houses.forEach(h => {
+          h.visited = false;
+          h.visitedEntrances = 0;
+          h.checkedEntrances = [];
+          h.visitedAt = null;
+        });
+        saveState();
+
+        // Reset timer
+        clearInterval(shiftTimerInterval);
+        shiftTimerInterval = null;
+        isShiftRunning = false;
+        shiftSeconds = 0;
+        localStorage.setItem('topmts_shift_seconds', '0');
+        updateShiftTimerDisplay();
+
+        showToast('Новый обход начат! История сохранена.');
+        navTo('houses');
+      }
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      if (!historyRecords || !historyRecords.length) {
+        container.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">История пока пуста.</div>`;
+        return;
+      }
+
+      container.innerHTML = historyRecords.map(item => `
+        <div class="history-card">
+          <div class="history-card-date">📅 ${item.date} — время: ${item.timeWorked || '—'}</div>
+          <div class="history-card-stats">
+            🏠 Домов: <b>${item.housesCount}</b> &nbsp;|&nbsp; 🚪 Подъездов: <b>${item.entrancesCount}</b>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderSettings() {
+      document.getElementById('settingsTotalHouses').innerText = houses.length;
+      document.getElementById('settingsTotalEntrances').innerText = houses.reduce((s, h) => s + h.entrances, 0);
+      document.getElementById('settingsTotalFlats').innerText = houses.reduce((s, h) => s + h.flats, 0).toLocaleString();
+      renderHistory();
+    }
+
+    // --- Modal Add / Edit House ---
+    function openAddModal() {
+      doVibrate(30);
+      document.getElementById('modalTitle').innerText = 'Добавить дом в район';
+      document.getElementById('editHouseId').value = '';
+      document.getElementById('inputStreet').value = currentStreetFilter || '';
+      document.getElementById('inputHouse').value = '';
+      document.getElementById('inputEntrances').value = '4';
+      document.getElementById('inputFlats').value = '144';
+      document.getElementById('inputFloors').value = '9';
+      document.getElementById('btnDeleteHouse').style.display = 'none';
+      document.getElementById('addModal').classList.add('open');
+      setTimeout(() => document.getElementById('inputHouse').focus(), 150);
+    }
+
+    function openEditModal(id, event) {
+      if (event) event.stopPropagation();
+      doVibrate(30);
+      const house = houses.find(h => h.id === id);
+      if (!house) return;
+
+      document.getElementById('modalTitle').innerText = 'Редактировать дом';
+      document.getElementById('editHouseId').value = house.id;
+      document.getElementById('inputStreet').value = house.street;
+      document.getElementById('inputHouse').value = house.house;
+      document.getElementById('inputEntrances').value = house.entrances;
+      document.getElementById('inputFlats').value = house.flats;
+      document.getElementById('inputFloors').value = house.floors;
+      document.getElementById('btnDeleteHouse').style.display = 'block';
+      document.getElementById('addModal').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('addModal').classList.remove('open');
+    }
+
+    function closeModalOnBackdrop(e) {
+      if (e.target.id === 'addModal') closeModal();
+    }
+
+    function saveHouse() {
+      const id = document.getElementById('editHouseId').value;
+      const street = document.getElementById('inputStreet').value.trim();
+      const houseNum = document.getElementById('inputHouse').value.trim();
+      const entrances = parseInt(document.getElementById('inputEntrances').value, 10) || 1;
+      const flats = parseInt(document.getElementById('inputFlats').value, 10) || 1;
+      const floors = parseInt(document.getElementById('inputFloors').value, 10) || 1;
+
+      if (!street || !houseNum) {
+        alert('Пожалуйста, укажите улицу и номер дома');
+        return;
+      }
+
+      doVibrate(40);
+      if (id) {
+        // Edit
+        const house = houses.find(h => h.id === id);
+        if (house) {
+          house.street = street;
+          house.house = houseNum;
+          house.entrances = entrances;
+          house.flats = flats;
+          house.floors = floors;
+          showToast(`Дом ${street}, ${houseNum} обновлен`);
+        }
+      } else {
+        // Add new
+        const newId = 'h_' + Date.now();
+        houses.push({
+          id: newId,
+          street: street,
+          house: houseNum,
+          entrances: entrances,
+          flats: flats,
+          floors: floors,
+          visited: false,
+          visitedEntrances: 0,
+          checkedEntrances: [],
+          visitedAt: null
+        });
+        showToast(`Дом ${street}, ${houseNum} добавлен!`);
+      }
+
+      saveState();
+      closeModal();
+    }
+
+    function deleteCurrentHouse() {
+      const id = document.getElementById('editHouseId').value;
+      if (!id) return;
+      const house = houses.find(h => h.id === id);
+      if (!house) return;
+
+      if (confirm(`Удалить дом ${house.street}, ${house.house} из базы района?`)) {
+        doVibrate(40);
+        houses = houses.filter(h => h.id !== id);
+        saveState();
+        closeModal();
+        showToast('Дом удален');
+      }
+    }
+
+    function confirmResetToDefault() {
+      if (confirm('Сбросить базу адресов к исходным 32 домам с фото? Все добавленные дома будут удалены.')) {
+        doVibrate(50);
+        houses = DEFAULT_HOUSES.map(h => ({
+          ...h,
+          visited: false,
+          visitedEntrances: 0,
+          checkedEntrances: [],
+          visitedAt: null
+        }));
+        saveState();
+        showToast('База сброшена к исходным адресам');
+      }
+    }
+
+    // --- Export / Import JSON ---
+    function exportDataJson() {
+      doVibrate(30);
+      const data = {
+        exportedAt: new Date().toISOString(),
+        houses: houses,
+        history: historyRecords
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `topmts_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Резервная копия сохранена');
+    }
+
+    function importDataJson() {
+      document.getElementById('fileInputJson').click();
+    }
+
+    function handleFileImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            houses = parsed;
+          } else if (parsed && Array.isArray(parsed.houses)) {
+            houses = parsed.houses;
+            if (Array.isArray(parsed.history)) historyRecords = parsed.history;
+          }
+          saveState();
+          saveHistory();
+          showToast('База успешно импортирована!');
+        } catch (err) {
+          alert('Ошибка чтения JSON файла');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    // --- Navigation Tabs ---
+    function navTo(screenId) {
+      doVibrate(20);
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      const fab = document.getElementById('fabAdd');
+
+      if (screenId === 'houses') {
+        document.getElementById('screenHouses').classList.add('active');
+        document.getElementById('navHouses').classList.add('active');
+        fab.style.display = 'flex';
+      } else if (screenId === 'stats') {
+        document.getElementById('screenStats').classList.add('active');
+        document.getElementById('navStats').classList.add('active');
+        fab.style.display = 'none';
+        renderStats();
+      } else if (screenId === 'report') {
+        document.getElementById('screenReport').classList.add('active');
+        document.getElementById('navReport').classList.add('active');
+        fab.style.display = 'none';
+        renderReport();
+      } else if (screenId === 'settings') {
+        document.getElementById('screenSettings').classList.add('active');
+        document.getElementById('navSettings').classList.add('active');
+        fab.style.display = 'none';
+        renderSettings();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Handle Android Back Button
+    window.handleAndroidBack = function() {
+      const modal = document.getElementById('addModal');
+      if (modal.classList.contains('open')) {
+        closeModal();
+        return true;
+      }
+      const housesScreen = document.getElementById('screenHouses');
+      if (!housesScreen.classList.contains('active')) {
+        navTo('houses');
+        return true;
+      }
+      return false; // Let native activity finish
+    };
+
+    // Utilities
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function declOfNum(n, titles) {
+      return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2];
+    }
+
+    // Init on start
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      render();
+    });
+  </script>
+</body>
+</html>
