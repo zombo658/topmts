@@ -18,11 +18,11 @@ import android.widget.Toast
 class MainActivity : Activity() {
 
     lateinit var webView: WebView
-    lateinit var settings: Settings
+    lateinit var appSettings: Settings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        settings = Settings(this)
+        appSettings = Settings(this)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             window.statusBarColor = Color.parseColor("#0A0D14")
@@ -34,17 +34,17 @@ class MainActivity : Activity() {
 
         webView.apply {
             setBackgroundColor(Color.parseColor("#0A0D14"))
-            settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                databaseEnabled = true
-                allowFileAccess = true
-                cacheMode = WebSettings.LOAD_DEFAULT
-                useWideViewPort = true
-                loadWithOverviewMode = true
-                builtInZoomControls = false
-                displayZoomControls = false
-            }
+            val ws = settings
+            ws.javaScriptEnabled = true
+            ws.domStorageEnabled = true
+            ws.databaseEnabled = true
+            ws.allowFileAccess = true
+            ws.cacheMode = WebSettings.LOAD_DEFAULT
+            ws.useWideViewPort = true
+            ws.loadWithOverviewMode = true
+            ws.builtInZoomControls = false
+            ws.displayZoomControls = false
+
             addJavascriptInterface(WebAppInterface(this@MainActivity), "AndroidBridge")
             webChromeClient = WebChromeClient()
             webViewClient = object : WebViewClient() {
@@ -64,7 +64,7 @@ class MainActivity : Activity() {
         if (requestCode == REQ_PICK_CHAT && resultCode == RESULT_OK && data != null) {
             val p = data.getStringExtra(ChatPickerActivity.EXTRA_PEER) ?: ""
             if (p.isNotEmpty()) {
-                settings.peer = p
+                appSettings.peer = p
                 runOnUiThread {
                     webView.evaluateJavascript("window.onChatPicked ? window.onChatPicked('$p') : null", null)
                 }
@@ -85,11 +85,11 @@ class MainActivity : Activity() {
     fun getStatusText(): String {
         val nm = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
         if (!nm.areNotificationsEnabled()) return "Уведомления запрещены — напоминание не придёт"
-        if (!settings.enabled) return "Автоотправка по расписанию выключена"
-        if (settings.peer.isBlank()) return "Не выбран чат — напоминание не придёт"
-        if (settings.days.isEmpty()) return "Не выбраны дни недели — напоминание не придёт"
+        if (!appSettings.enabled) return "Автоотправка по расписанию выключена"
+        if (appSettings.peer.isBlank()) return "Не выбран чат — напоминание не придёт"
+        if (appSettings.days.isEmpty()) return "Не выбраны дни недели — напоминание не придёт"
 
-        val next = AlarmScheduler.nextTriggerMillis(settings)
+        val next = AlarmScheduler.nextRun(appSettings)
             ?: return "Напоминание не запланировано"
         return "Следующее напоминание: " + humanTime(next)
     }

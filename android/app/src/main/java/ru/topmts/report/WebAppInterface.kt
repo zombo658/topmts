@@ -72,28 +72,34 @@ class WebAppInterface(private val activity: MainActivity) {
 
     @JavascriptInterface
     fun openLoginPortal() {
-        activity.startActivity(
-            Intent(activity, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_URL, settings.portalUrl)
-        )
+        activity.runOnUiThread {
+            activity.startActivity(
+                Intent(activity, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_URL, settings.portalUrl)
+            )
+        }
     }
 
     @JavascriptInterface
     fun openLoginVk(host: String) {
         val h = host.trim().ifEmpty { settings.vkHost }
         settings.vkHost = h
-        activity.startActivity(
-            Intent(activity, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_URL, "https://$h/im")
-        )
+        activity.runOnUiThread {
+            activity.startActivity(
+                Intent(activity, LoginActivity::class.java).putExtra(LoginActivity.EXTRA_URL, "https://$h/im")
+            )
+        }
     }
 
     @JavascriptInterface
     fun pickChat(host: String) {
         val h = host.trim().ifEmpty { settings.vkHost }
         settings.vkHost = h
-        activity.startActivityForResult(
-            Intent(activity, ChatPickerActivity::class.java).putExtra(ChatPickerActivity.EXTRA_HOST, h),
-            MainActivity.REQ_PICK_CHAT
-        )
+        activity.runOnUiThread {
+            activity.startActivityForResult(
+                Intent(activity, ChatPickerActivity::class.java).putExtra(ChatPickerActivity.EXTRA_HOST, h),
+                MainActivity.REQ_PICK_CHAT
+            )
+        }
     }
 
     @JavascriptInterface
@@ -108,7 +114,9 @@ class WebAppInterface(private val activity: MainActivity) {
             return
         }
 
-        activity.startActivity(Intent(activity, RunnerActivity::class.java))
+        activity.runOnUiThread {
+            activity.startActivity(Intent(activity, RunnerActivity::class.java))
+        }
     }
 
     @JavascriptInterface
@@ -133,8 +141,10 @@ class WebAppInterface(private val activity: MainActivity) {
             }
 
             AlarmScheduler.schedule(activity, settings)
-            activity.maybeAskExactAlarm()
-            activity.maybeAskBatteryExemption()
+            activity.runOnUiThread {
+                activity.maybeAskExactAlarm()
+                activity.maybeAskBatteryExemption()
+            }
             toast("Настройки сохранены")
             true
         } catch (e: Exception) {
@@ -166,6 +176,8 @@ class WebAppInterface(private val activity: MainActivity) {
 
     @JavascriptInterface
     fun testNotification() {
-        activity.testNotification()
+        activity.runOnUiThread {
+            activity.testNotification()
+        }
     }
 }
